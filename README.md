@@ -21,12 +21,29 @@ Dayweave 是一个面向个人生活场景的助手工具。当前仓库处于**
 - 邮箱注册 / 登录 / 退出，Supabase 会话持久化；
 - 注册时自动建立用户资料；
 - 登录态与未登录态路由切换；
-- 「今天 / 我的」双 Tab 应用外壳；
+- 「今天 / 工具 / 待办 / 我的」四 Tab 应用外壳与页面大纲；
+- 工具详情占位页（功能留空，仅定版式）；
 - 亮色 / 暗色主题、统一设计令牌与基础 UI 组件；
 - Supabase 行级安全（RLS）初始化脚本；
 - Jest 离线测试、TypeScript 严格类型检查与 GitHub Actions CI。
 
 > 本仓库不包含任何记账、家庭账本或旧项目业务逻辑。后续功能应围绕 Dayweave 自身的生活助手定位独立设计。
+
+## 页面大纲
+
+当前阶段先把页面风格与信息结构定下来：四个主页面均为静态演示，页面上的工时、待办、天气等数字是示例数据，接入真实 store 后替换；工具详情页只保留骨架，具体工具功能尚未开发。
+
+![页面大纲](./docs/preview/overview.png)
+
+| 页面 | 内容 | 预览 |
+| --- | --- | --- |
+| 今天 | 问候与日期、今日概览、常用工具快捷入口、本周小结 | [`today.png`](./docs/preview/today.png) |
+| 工具 | 搜索、我的常用、分类筛选、工具列表 | [`tools.png`](./docs/preview/tools.png) |
+| 待办 | 完成度概览、分类筛选、今天 / 明天分组 | [`tasks.png`](./docs/preview/tasks.png) |
+| 我的 | 用户信息、数据统计、设置入口、退出登录 | [`profile.png`](./docs/preview/profile.png) |
+| 工具详情 | 标题栏 + 留白占位，等待具体功能填充 | [`tool-detail.png`](./docs/preview/tool-detail.png) |
+
+设计语言：浅薄荷到近白的竖向渐变背景、白色圆角卡片、深靛蓝标题、`#2CAE73` 主色与马卡龙色系图标底色；四个 Tab 在亮色 / 暗色下都有对应取值。预览图由真实组件渲染导出，仅作为版式参考。
 
 ## 技术栈
 
@@ -57,6 +74,7 @@ dayweave
 │  ├─ test/          测试替身
 │  ├─ theme/         调色板、间距、圆角、字号
 │  └─ types/         领域类型与数据库行类型映射
+├─ docs/preview/     页面大纲预览图
 ├─ supabase/         schema.sql 与后续 migrations
 ├─ .github/          CI 工作流
 ├─ App.tsx           根编排
