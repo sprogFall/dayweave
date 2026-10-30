@@ -1,16 +1,45 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Fragment, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
+import { IconTile } from '@/components/ui/IconTile';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Screen } from '@/components/ui/Screen';
+import { StatBlock } from '@/components/ui/StatBlock';
 import { confirmAction, showMessage } from '@/lib/alert';
 import { toUserMessage } from '@/lib/errors';
 import { getMyProfile } from '@/services/profile.service';
 import { useAuthStore } from '@/stores/auth.store';
-import { radius, spacing, typography, useColors } from '@/theme';
+import { PROFILE_STATS } from './profile.data';
+import {
+  radius,
+  spacing,
+  typography,
+  useColors,
+  usePrimaryGradient,
+  type IconName,
+  type TintName,
+} from '@/theme';
+
+interface MenuEntry {
+  id: string;
+  label: string;
+  icon: IconName;
+  tint: TintName;
+}
+
+const MENU_ENTRIES: readonly MenuEntry[] = [
+  { id: 'stats', label: '数据统计', icon: 'stats-chart-outline', tint: 'blue' },
+  { id: 'tools', label: '工具管理', icon: 'grid-outline', tint: 'violet' },
+  { id: 'notices', label: '消息通知', icon: 'notifications-outline', tint: 'amber' },
+  { id: 'help', label: '帮助与反馈', icon: 'help-circle-outline', tint: 'teal' },
+];
 
 export function ProfileScreen() {
   const colors = useColors();
+  const avatarGradient = usePrimaryGradient();
   const session = useAuthStore((state) => state.session);
   const signOut = useAuthStore((state) => state.signOut);
   const [displayName, setDisplayName] = useState('');
@@ -43,6 +72,10 @@ export function ProfileScreen() {
     };
   }, [session?.user]);
 
+  function notifyPreview() {
+    showMessage('还在路上', '这个页面会在后续版本开放。');
+  }
+
   async function handleSignOut() {
     const confirmed = await confirmAction({
       title: '退出登录？',
@@ -63,44 +96,61 @@ export function ProfileScreen() {
   }
 
   const user = session?.user;
-  const name = displayName || (user?.user_metadata?.display_name as string | undefined) || '未设置昵称';
+  const name =
+    displayName || (user?.user_metadata?.display_name as string | undefined) || '未设置昵称';
   const email = user?.email ?? '未绑定邮箱';
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>PROFILE</Text>
-          <Text style={[styles.title, { color: colors.text }]}>我的</Text>
-        </View>
+        <Text style={[styles.title, { color: colors.text }]}>我的</Text>
 
-        <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.avatar, { backgroundColor: colors.primarySoft }]}>
+        <Card style={styles.profile}>
+          <LinearGradient colors={avatarGradient} style={styles.avatar}>
             {loading ? (
-              <ActivityIndicator color={colors.primary} />
+              <ActivityIndicator color={colors.onPrimary} />
             ) : (
-              <Text style={[styles.avatarText, { color: colors.primary }]}>
+              <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
                 {name.slice(0, 1).toUpperCase()}
               </Text>
             )}
-          </View>
+          </LinearGradient>
           <View style={styles.profileCopy}>
             <Text style={[styles.name, { color: colors.text }]}>{name}</Text>
             <Text style={[styles.email, { color: colors.muted }]}>{email}</Text>
           </View>
-        </View>
+        </Card>
 
-        <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.muted }]}>账号状态</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>已登录</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.muted }]}>数据后端</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>Supabase</Text>
-          </View>
-        </View>
+        <Card style={styles.stats}>
+          {PROFILE_STATS.map((stat, index) => (
+            <Fragment key={stat.id}>
+              {index > 0 ? (
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              ) : null}
+              <StatBlock label={stat.label} value={stat.value} unit={stat.unit} tint={stat.tint} />
+            </Fragment>
+          ))}
+        </Card>
+
+        <Card padded={false} style={styles.menu}>
+          {MENU_ENTRIES.map((entry, index) => (
+            <View key={entry.id}>
+              {index > 0 ? (
+                <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={entry.label}
+                onPress={notifyPreview}
+                style={({ pressed }) => [styles.menuRow, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <IconTile name={entry.icon} tint={entry.tint} size="sm" />
+                <Text style={[styles.menuLabel, { color: colors.text }]}>{entry.label}</Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.faint} />
+              </Pressable>
+            </View>
+          ))}
+        </Card>
 
         <PrimaryButton
           label="退出登录"
@@ -114,30 +164,35 @@ export function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.xl, gap: spacing.xl },
-  eyebrow: { fontSize: typography.caption, fontWeight: '800', letterSpacing: 1.8 },
-  title: { marginTop: spacing.xs, fontSize: typography.hero, fontWeight: '800' },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
     gap: spacing.lg,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
   },
-  avatar: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: typography.title, fontWeight: '800' },
+  title: { fontSize: typography.title, fontWeight: '800' },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  avatar: {
+    width: 58,
+    height: 58,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: typography.subtitle + 3, fontWeight: '800' },
   profileCopy: { flex: 1, gap: spacing.xs },
-  name: { fontSize: typography.subtitle, fontWeight: '800' },
+  name: { fontSize: typography.subtitle, fontWeight: '700' },
   email: { fontSize: typography.caption },
-  infoCard: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.lg },
-  infoRow: {
+  stats: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md },
+  divider: { width: 1, alignSelf: 'stretch', marginBottom: spacing.xs },
+  menu: { overflow: 'hidden' },
+  menuDivider: { height: StyleSheet.hairlineWidth, marginLeft: spacing.xl + 30 },
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.lg,
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md + 2,
   },
-  infoLabel: { fontSize: typography.body },
-  infoValue: { fontSize: typography.body, fontWeight: '600' },
-  divider: { height: 1 },
+  menuLabel: { flex: 1, fontSize: typography.body, fontWeight: '500' },
 });

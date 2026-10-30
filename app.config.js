@@ -4,7 +4,7 @@
  */
 const APP_NAME = 'Dayweave';
 const APP_SLUG = 'dayweave';
-const BRAND_COLOR = '#3F6B57';
+const BRAND_COLOR = '#2CAE73';
 
 module.exports = {
   expo: {
@@ -14,7 +14,7 @@ module.exports = {
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
     scheme: 'dayweave',
-    backgroundColor: '#F6F3ED',
+    backgroundColor: '#F7FBFA',
     plugins: ['expo-asset'],
     ios: {
       supportsTablet: true,

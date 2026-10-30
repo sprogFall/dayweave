@@ -2,6 +2,7 @@ module.exports = {
   preset: 'jest-expo',
   setupFiles: ['./jest.setup.ts'],
   moduleNameMapper: {
+    '^@/lib/supabase$': '<rootDir>/src/test/supabase.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transformIgnorePatterns: [

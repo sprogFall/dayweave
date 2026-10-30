@@ -1,16 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StyleSheet } from 'react-native';
 
+import { findTool } from '@/domain/toolCatalog';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { RegisterScreen } from '@/screens/auth/RegisterScreen';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
+import { TasksScreen } from '@/screens/tasks/TasksScreen';
 import { TodayScreen } from '@/screens/today/TodayScreen';
-import { spacing, useColors } from '@/theme';
-import type { AuthStackParamList, MainTabParamList } from './types';
+import { ToolPlaceholderScreen } from '@/screens/tools/ToolPlaceholderScreen';
+import { ToolsScreen } from '@/screens/tools/ToolsScreen';
+import { useColors, type IconName } from '@/theme';
+import type { AuthStackParamList, MainStackParamList, MainTabParamList } from './types';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
-const MainTabs = createBottomTabNavigator<MainTabParamList>();
+const TabStack = createBottomTabNavigator<MainTabParamList>();
+const RootStack = createNativeStackNavigator<MainStackParamList>();
+
+const TAB_ICONS: Record<keyof MainTabParamList, { active: IconName; inactive: IconName }> = {
+  Today: { active: 'sunny', inactive: 'sunny-outline' },
+  Tools: { active: 'grid', inactive: 'grid-outline' },
+  Tasks: { active: 'checkmark-circle', inactive: 'checkmark-circle-outline' },
+  Profile: { active: 'person', inactive: 'person-outline' },
+};
 
 export function AuthNavigator() {
   return (
@@ -21,31 +34,63 @@ export function AuthNavigator() {
   );
 }
 
+function MainTabNavigator() {
+  const colors = useColors();
+
+  return (
+    <TabStack.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.faint,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border,
+          paddingTop: 4,
+        },
+        tabBarIcon: ({ color, size, focused }) => {
+          const icons = TAB_ICONS[route.name];
+          return (
+            <Ionicons
+              name={focused ? icons.active : icons.inactive}
+              size={size - 2}
+              color={color}
+            />
+          );
+        },
+      })}
+    >
+      <TabStack.Screen name="Today" component={TodayScreen} options={{ title: '今天' }} />
+      <TabStack.Screen name="Tools" component={ToolsScreen} options={{ title: '工具' }} />
+      <TabStack.Screen name="Tasks" component={TasksScreen} options={{ title: '待办' }} />
+      <TabStack.Screen name="Profile" component={ProfileScreen} options={{ title: '我的' }} />
+    </TabStack.Navigator>
+  );
+}
+
 export function MainNavigator() {
   const colors = useColors();
 
   return (
-    <MainTabs.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          paddingTop: spacing.xs,
-        },
-        tabBarIcon: ({ color, size }) => (
-          <Ionicons
-            name={route.name === 'Today' ? 'sunny-outline' : 'person-outline'}
-            size={size}
-            color={color}
-          />
-        ),
-      })}
-    >
-      <MainTabs.Screen name="Today" component={TodayScreen} options={{ title: '今天' }} />
-      <MainTabs.Screen name="Profile" component={ProfileScreen} options={{ title: '我的' }} />
-    </MainTabs.Navigator>
+    <RootStack.Navigator>
+      <RootStack.Screen
+        name="Tabs"
+        component={MainTabNavigator}
+        options={{ headerShown: false }}
+      />
+      <RootStack.Screen
+        name="ToolDetail"
+        component={ToolPlaceholderScreen}
+        options={({ route }) => ({
+          title: findTool(route.params.toolId)?.title ?? '工具',
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.text,
+          headerTitleStyle: { fontWeight: '700' },
+        })}
+      />
+    </RootStack.Navigator>
   );
 }
