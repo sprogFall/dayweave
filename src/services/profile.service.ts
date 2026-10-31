@@ -4,7 +4,7 @@ import { toProfile, type ProfileRow } from '@/types/db';
 
 export async function getMyProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('dw_profiles')
     .select('id, display_name, avatar_url, created_at, updated_at')
     .eq('id', userId)
     .single<ProfileRow>();
@@ -22,7 +22,7 @@ export async function updateMyProfile(
   if (patch.avatarUrl !== undefined) update.avatar_url = patch.avatarUrl;
 
   const { data, error } = await supabase
-    .from('profiles')
+    .from('dw_profiles')
     .update(update)
     .eq('id', userId)
     .select('id, display_name, avatar_url, created_at, updated_at')

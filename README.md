@@ -139,19 +139,24 @@ npm run check
 
 ## 当前数据库
 
-`supabase/schema.sql` 当前只创建 `profiles` 基础表，并包含：
+`supabase/schema.sql` 当前只创建 `dw_profiles` 基础表，并包含：
 
 - 注册后自动创建用户资料；
 - `updated_at` 自动维护；
 - 启用 RLS，仅允许用户读写自己的资料；
 - 最小权限授权。
 
+### 表名前缀约定
+
+同一个 Supabase 项目会被多个应用共用，因此本项目的数据库对象**统一使用 `dw_` 前缀**：表名（`dw_profiles`）、策略（`dw_profiles_select_own`）、触发器（`dw_on_auth_user_created`）、函数（`dw_set_updated_at`）都带前缀，避免和其他项目在同库内重名。命名细节见 [`AGENTS.md`](./AGENTS.md) 的 3.3 节。
+
 新增业务表时：
 
 1. 写入 `supabase/migrations/<timestamp>_<name>.sql`；
 2. 同步更新 `supabase/schema.sql`；
-3. 为表启用 RLS 并编写策略；
-4. 需要实时同步时再加入 `supabase_realtime` publication。
+3. 表名使用 `dw_<业务>`，策略 / 触发器 / 函数同样带 `dw_` 前缀；
+4. 为表启用 RLS 并编写策略；
+5. 需要实时同步时再加入 `supabase_realtime` publication。
 
 ## 架构约定
 

@@ -25,7 +25,7 @@
 | 语言 | TypeScript 5.3 + strict | 禁止 `any`；确需逃逸必须注释原因；统一使用 `@/` 别名 |
 | 框架 | Expo SDK 52 + React Native 0.76 | 仅函数组件 + Hooks，禁止 class 组件 |
 | 状态 | zustand 5 | 全局业务状态统一放 `stores/`，不引 Redux / 业务 Context |
-| 后端 | Supabase Auth / Postgres / RLS / Realtime / Storage | 连接信息只通过 `EXPO_PUBLIC_*` 注入 |
+| 后端 | Supabase Auth / Postgres / RLS / Realtime / Storage | 连接信息只通过 `EXPO_PUBLIC_*` 注入；表名统一 `dw_` 前缀 |
 | 路由 | React Navigation 7 | 路由与参数类型统一在 `navigation/` 定义 |
 | 测试 | Jest + jest-expo + React Native Testing Library | 测试必须离线、确定、快速 |
 | 弹窗 | `src/lib/alert.ts` | 业务代码不直接调 `Alert.alert` / `window.alert` |
@@ -77,7 +77,7 @@ screens ──► stores ──► services ──► lib/supabase
 | 新通用 UI | `src/components/` 或 `src/components/ui/` | 交互测试（如适用） |
 | 新页面 | `src/screens/<功能>/XxxScreen.tsx` | `navigation/types.ts` + `navigation/index.tsx` |
 | 新设计令牌 | `src/theme/` | 浅色 + 深色两套值 |
-| 新数据库变更 | `supabase/migrations/<timestamp>_xxx.sql` | 同步 `supabase/schema.sql` |
+| 新数据库变更 | `supabase/migrations/<timestamp>_xxx.sql` | 同步 `supabase/schema.sql`；表名带 `dw_` 前缀 |
 
 ### 2.4 关键不变量
 
@@ -86,6 +86,7 @@ screens ──► stores ──► services ──► lib/supabase
 - zustand v5 selector 对「未加载 / 空数据」应返回模块级常量，保证快照引用稳定。
 - 数据库行到领域对象的转换统一走 `types/db.ts`，禁止页面里手写 `snake_case` 映射。
 - 所有数据库用户数据表必须启用 RLS；权限边界统一使用 `auth.uid()`。
+- 所有 Dayweave 自建的数据库对象统一使用 `dw_` 前缀，保证多个项目可以共用一个 Supabase 项目。
 
 ---
 
@@ -108,6 +109,10 @@ screens ──► stores ──► services ──► lib/supabase
 
 ### 3.3 数据与 Supabase
 
+- **表名前缀**：本项目建表统一使用 `dw_<业务>` 命名（如 `dw_profiles`、`dw_work_logs`）。同一个 Supabase 项目会被多个应用共用，不带前缀的表名迟早互相冲突。
+- 与之配套的策略、触发器、函数同样加 `dw_` 前缀（如策略 `dw_profiles_select_own`、函数 `dw_set_updated_at`），避免同库内与其他项目重名。
+- 引用带前缀的表时，`schema.sql`、迁移脚本、`services`、`types/db.ts` 中的名字必须完全一致，不留旧名兼容。
+- 给已存在的表改名时，先写 `supabase/migrations/<timestamp>_rename_xx.sql` 迁移并同步 `schema.sql`，迁移文件内要做存在性判断，保证重复执行不报错。
 - `services` 是唯一允许直接 `import { supabase }` 的业务层（`lib/supabase.ts` 除外）。
 - 每个 service 方法返回领域类型；错误统一 `throw new Error('<面向用户的中文文案>')`。
 - `supabase/schema.sql` 是幂等初始化脚本；新表 / 新字段必须同步迁移与 schema，并写必要注释。
@@ -169,6 +174,6 @@ screens ──► stores ──► services ──► lib/supabase
 - 「今天 / 工具 / 待办 / 我的」导航外壳与静态页面大纲（演示数据）；
 - 工具详情占位页，工具功能尚未实现；
 - 亮暗主题与基础组件；
-- `profiles` 数据库表与 RLS。
+- `dw_profiles` 数据库表与 RLS。
 
 > 不要假设尚未实现的功能存在。新增产品功能前，先明确数据模型、RLS 策略、加载态、空态、错误态和测试。

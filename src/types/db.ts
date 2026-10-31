@@ -1,6 +1,6 @@
 import type { Profile } from './domain';
 
-/** public.profiles 的数据库行类型；snake_case 只允许出现在本文件。 */
+/** public.dw_profiles 的数据库行类型；snake_case 只允许出现在本文件。 */
 export interface ProfileRow {
   id: string;
   display_name: string;
