@@ -246,7 +246,7 @@ keystore 已被 `.gitignore` 忽略（`*.keystore` / `*.jks` / `.secrets/`），
 
 > `SUPABASE_*` 会被内联进客户端 bundle，属公开信息；**真正需要保密的是 keystore 与其密码**。
 
-4. **应用图标与原生开屏**：目前 `app.config.js` 还没有配置 `icon` / `android.adaptiveIcon` / `expo-splash-screen`，构建会使用 Expo 默认图标与开屏。补图后需要重新构建才生效。
+4. **应用图标与原生开屏**：使用 [`dayweave-icon.png`](./dayweave-icon.png) 生成的 [`assets/icon.png`](./assets/icon.png)（1024×1024、去白边）和 [`assets/adaptive-icon.png`](./assets/adaptive-icon.png)（主体收在 Android 安全区内）。[`app.config.js`](./app.config.js) 已配置应用图标、自适应图标及亮暗原生启动屏；修改后需重新构建安装包才生效。更换原图后运行 `node scripts/generate-icons.js` 重新生成，`npm run check` 会检查资源尺寸、边缘与安全区。
 
 </details>
 

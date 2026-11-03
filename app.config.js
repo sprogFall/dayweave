@@ -4,7 +4,8 @@
  */
 const APP_NAME = 'Dayweave';
 const APP_SLUG = 'dayweave';
-const BRAND_COLOR = '#2CAE73';
+const BRAND_COLOR = '#B8EED0';
+const ICON_PATH = './assets/icon.png';
 
 module.exports = {
   expo: {
@@ -15,7 +16,21 @@ module.exports = {
     userInterfaceStyle: 'automatic',
     scheme: 'dayweave',
     backgroundColor: '#F7FBFA',
-    plugins: ['expo-asset'],
+    icon: ICON_PATH,
+    plugins: [
+      'expo-asset',
+      'expo-font',
+      [
+        'expo-splash-screen',
+        {
+          image: ICON_PATH,
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#F7FBFA',
+          dark: { image: ICON_PATH, backgroundColor: '#0E1413' },
+        },
+      ],
+    ],
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.dayweave.app',
@@ -24,6 +39,7 @@ module.exports = {
       package: 'com.dayweave.app',
       versionCode: Number(process.env.ANDROID_VERSION_CODE || 1),
       adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: BRAND_COLOR,
       },
     },
