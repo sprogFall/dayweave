@@ -74,9 +74,9 @@ dayweave
 │  ├─ test/          测试替身
 │  ├─ theme/         调色板、间距、圆角、字号
 │  └─ types/         领域类型与数据库行类型映射
+├─ .github/          CI、发布构建与缓存预热工作流；scripts/ 为 Gradle 调优脚本
 ├─ docs/preview/     页面大纲预览图
 ├─ supabase/         schema.sql 与后续 migrations
-├─ .github/          CI 工作流
 ├─ App.tsx           根编排
 └─ index.ts          Expo 入口
 ```
@@ -157,6 +157,114 @@ npm run check
 3. 表名使用 `dw_<业务>`，策略 / 触发器 / 函数同样带 `dw_` 前缀；
 4. 为表启用 RLS 并编写策略；
 5. 需要实时同步时再加入 `supabase_realtime` publication。
+
+## 构建与发布
+
+Android APK 完全在 GitHub Actions Runner 上构建，**不依赖 Expo / EAS 账号**：CI 内先 `expo prebuild` 生成原生工程，再用 Gradle 打包并签名。JDK 17 与 Android SDK 由 Runner 自带。这套流程与同级项目 `family-piggy` 保持一致。
+
+CI 工作流：
+
+| 工作流 | 触发 | 内容 |
+| --- | --- | --- |
+| [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) | push / PR 到 `main` | `npm ci` → `npm run typecheck` → `npm test -- --ci` |
+| [`.github/workflows/warm-android-cache.yml`](./.github/workflows/warm-android-cache.yml) | 依赖 / 配置变更或手动触发 | 在 `main` 作用域预热 Gradle 缓存 |
+| [`.github/workflows/release.yml`](./.github/workflows/release.yml) | 推送 `v*` 标签或手动触发 | 构建、签名并发布 Android APK |
+
+### 触发方式与产物
+
+```bash
+# 正式发布：推送 annotated tag
+git tag -a v0.1.0 -m "v0.1.0：一句话主题
+
+- 用户可感知的改动"
+git push origin v0.1.0
+```
+
+| 触发方式 | 发布标签 | 说明 |
+| --- | --- | --- |
+| 推送 `v*` 标签 | 该标签（如 `v0.1.0`） | 正式 Release |
+| 手动 Run workflow | `build-<run_number>` | 预发布，便于随时获取安装包 |
+
+产物发布在仓库 **Releases** 页面的 Assets 中，文件名形如 `dayweave-<tag>.apk`，可直接点击下载安装，无需解压。同一标签重跑会覆盖同名资产。
+
+### 环境变量与版本号注入链路
+
+```text
+GitHub Secrets
+  └─ EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY
+       └─ Gradle assembleRelease 触发 Metro 打包时内联进 bundle
+
+github.run_number → ANDROID_VERSION_CODE → app.config.js 的 android.versionCode（每次构建递增）
+tag v0.1.0        → APP_VERSION          → app.config.js 的 version（去掉 v 前缀）
+```
+
+签名不走「修改 build.gradle」，而是用 Gradle 官方注入属性（与 Android Studio 同款）在 `assembleRelease` 命令行传入，prebuild 生成的工程保持原样：
+
+```bash
+./gradlew assembleRelease \
+  -Pandroid.injected.signing.store.file="$KEYSTORE_FILE" \
+  -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+  -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+  -Pandroid.injected.signing.key.password="$KEYSTORE_PASSWORD"
+```
+
+PKCS12 keystore 的 key 密码与 store 密码相同，因此只需要一个密码 Secret。
+
+<details>
+<summary><strong>首次打包一次性准备：keystore + GitHub Secrets</strong></summary>
+
+1. **签名 keystore**：本项目已生成一把放在本地 `.secrets/`（见 `.secrets/android-signing-credentials.txt`），别名 `dayweave`，务必自行离线备份；丢失后无法覆盖升级已安装的 App。如需自行重新生成：
+
+```bash
+keytool -genkeypair -v -storetype PKCS12 \
+  -keystore release.keystore \
+  -alias dayweave \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+2. **将 keystore 转为 Base64（单行）**：
+
+```bash
+# macOS / Linux
+base64 -w0 release.keystore
+
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore"))
+```
+
+keystore 已被 `.gitignore` 忽略（`*.keystore` / `*.jks` / `.secrets/`），不要提交。
+
+3. **在 GitHub 仓库 Settings → Secrets and variables → Actions 配置 5 个 Secrets**：
+
+| Secret | 说明 |
+| --- | --- |
+| `SUPABASE_URL` | Supabase 项目 URL |
+| `SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `ANDROID_KEYSTORE_BASE64` | keystore 的 Base64 单行文本 |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore 密码（PKCS12 下 key 密码与其相同） |
+| `ANDROID_KEY_ALIAS` | keystore 别名（本项目为 `dayweave`） |
+
+> `SUPABASE_*` 会被内联进客户端 bundle，属公开信息；**真正需要保密的是 keystore 与其密码**。
+
+4. **应用图标与原生开屏**：目前 `app.config.js` 还没有配置 `icon` / `android.adaptiveIcon` / `expo-splash-screen`，构建会使用 Expo 默认图标与开屏。补图后需要重新构建才生效。
+
+</details>
+
+<details>
+<summary><strong>构建失败排查</strong></summary>
+
+| 现象 | 原因与处理 |
+| --- | --- |
+| `Plugin [id: 'expo-module-gradle-plugin'] was not found` | `node_modules` 混入其他 SDK 版本的原生模块；运行 `npx expo install --check`，再用 `npx expo install <包名>` 装回期望版本 |
+| `Could not get unknown property 'release' for SoftwareComponent container` | 通常是上一条版本错配的连带报错，依赖对齐后消失 |
+| APK 仍是 debug 签名 | keystore Secrets 未生效，检查 `ANDROID_KEYSTORE_BASE64` / 密码 / 别名；工作流里的 `校验 APK 签名` 步骤会直接失败 |
+| 发布构建卡在下载 `gradle-*-all.zip` | 到 Actions 手动触发一次 **Warm Android Cache**，或 push `package.json` / `package-lock.json` 预热 main 缓存 |
+
+</details>
+
+> 发布工作流需要 `contents: write` 权限来创建 Release（已在 `release.yml` 中声明）。若仓库或组织策略将默认 `GITHUB_TOKEN` 限制为只读，请到 Settings → Actions → General → Workflow permissions 调整为 “Read and write permissions”。
+
+> 当前 CI 只产出 **Android APK**。AAB（上架 Google Play）与 iOS 正式包尚未接入：iOS 必须 Apple 付费开发者账号 + macOS Runner，AAB 需要补一条 `bundleRelease` 流水线。
 
 ## 架构约定
 

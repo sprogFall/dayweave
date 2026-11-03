@@ -13,3 +13,6 @@ ios/
 *.keystore
 *.jks
 coverage/
+
+# 本地保存的签名密钥与凭据，只用于手动上传到 GitHub Secrets，绝不入库
+.secrets/
