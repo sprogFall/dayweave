@@ -246,7 +246,7 @@ keystore 已被 `.gitignore` 忽略（`*.keystore` / `*.jks` / `.secrets/`），
 
 > `SUPABASE_*` 会被内联进客户端 bundle，属公开信息；**真正需要保密的是 keystore 与其密码**。
 
-4. **应用图标与原生开屏**：使用 [`dayweave-icon.png`](./dayweave-icon.png) 生成的 [`assets/icon.png`](./assets/icon.png)（1024×1024、去白边）和 [`assets/adaptive-icon.png`](./assets/adaptive-icon.png)（主体收在 Android 安全区内）。[`app.config.js`](./app.config.js) 已配置应用图标、自适应图标及亮暗原生启动屏；修改后需重新构建安装包才生效。更换原图后运行 `node scripts/generate-icons.js` 重新生成，`npm run check` 会检查资源尺寸、边缘与安全区。
+4. **应用图标与原生开屏**：使用 [`dayweave-icon.png`](./dayweave-icon.png) 生成的 [`assets/icon.png`](./assets/icon.png)（1024×1024、四边无泛白）和 [`assets/adaptive-icon.png`](./assets/adaptive-icon.png)（主体收在 Android 安全区内、外圈用图标自身色调延展）。生成脚本 [`scripts/generate-icons.js`](./scripts/generate-icons.js) 自带 [`scripts/png.js`](./scripts/png.js) 编解码，不依赖第三方图像库；它会先找到内容区、把裁切边收进不泛白的位置，再收敛边缘发光，所以原图四周的白底与柔和投影不会变成图标上的白边。[`app.config.js`](./app.config.js) 已配置应用图标、自适应图标及亮暗原生启动屏；修改后需重新构建安装包才生效。更换原图后运行 `node scripts/generate-icons.js` 重新生成，`npm run check` 会检查资源尺寸、边缘亮度与 Android 安全区。
 
 </details>
 
