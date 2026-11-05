@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { findTool } from '@/domain/toolCatalog';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
@@ -12,6 +12,7 @@ import { TodayScreen } from '@/screens/today/TodayScreen';
 import { ToolPlaceholderScreen } from '@/screens/tools/ToolPlaceholderScreen';
 import { ToolsScreen } from '@/screens/tools/ToolsScreen';
 import { useColors, type IconName } from '@/theme';
+import { getTabBarStyle, TAB_BAR_LABEL_STYLE } from './tabBar';
 import type { AuthStackParamList, MainStackParamList, MainTabParamList } from './types';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -36,6 +37,7 @@ export function AuthNavigator() {
 
 function MainTabNavigator() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <TabStack.Navigator
@@ -43,13 +45,8 @@ function MainTabNavigator() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.faint,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: colors.border,
-          paddingTop: 4,
-        },
+        tabBarLabelStyle: TAB_BAR_LABEL_STYLE,
+        tabBarStyle: getTabBarStyle(colors, insets.bottom),
         tabBarIcon: ({ color, size, focused }) => {
           const icons = TAB_ICONS[route.name];
           return (
