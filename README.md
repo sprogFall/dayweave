@@ -43,7 +43,7 @@ Dayweave 是一个面向个人生活场景的助手工具。当前仓库处于**
 | 我的 | 用户信息、数据统计、设置入口、退出登录 | [`profile.png`](./docs/preview/profile.png) |
 | 工具详情 | 标题栏 + 留白占位，等待具体功能填充 | [`tool-detail.png`](./docs/preview/tool-detail.png) |
 
-设计语言：浅薄荷到近白的竖向渐变背景、白色圆角卡片、深靛蓝标题、`#2CAE73` 主色与马卡龙色系图标底色；四个 Tab 在亮色 / 暗色下都有对应取值。预览图由真实组件渲染导出，仅作为版式参考。
+设计语言：浅薄荷到近白的竖向渐变背景、白色圆角卡片、深靛蓝标题、`#2CAE73` 主色与马卡龙色系图标底色；四个 Tab 各有专属语义图标与选中态色块，亮色 / 暗色下都有对应取值。预览图由 `node scripts/render-preview.js` 用真实组件渲染导出（`react-native-web` SSR + 无头浏览器截图），仅作为版式参考；改动页面或底部标签样式后重跑脚本即可刷新这 6 张图。
 
 ## 技术栈
 
@@ -160,7 +160,7 @@ npm run check
 
 ## 构建与发布
 
-Android APK 完全在 GitHub Actions Runner 上构建，**不依赖 Expo / EAS 账号**：CI 内先 `expo prebuild` 生成原生工程，再用 Gradle 打包并签名。JDK 17 与 Android SDK 由 Runner 自带。这套流程与同级项目 `family-piggy` 保持一致。
+Android APK 完全在 GitHub Actions Runner 上构建，**不依赖 Expo / EAS 账号**：CI 内先 `expo prebuild` 生成原生工程，再用 Gradle 打包并签名。JDK 17 与 Android SDK 由 Runner 自带。
 
 CI 工作流：
 
@@ -285,6 +285,33 @@ screens ──► stores ──► services ──► lib/supabase
 - UI 颜色、间距、字号统一从 `theme/` 取，不散落硬编码。
 
 更详细的开发规则见 [`AGENTS.md`](./AGENTS.md)。
+
+## 通用弹窗与选择器
+
+所有提示、确认与日期 / 时间选择都使用应用内组件绘制，不再调用 `Alert.alert` / `window.confirm`，也不使用平台原生日期、时间滚轮；Web、Android、iOS 的视觉与交互保持一致。
+
+| 场景 | 入口 | 返回值 |
+| --- | --- | --- |
+| 消息提示 | `showMessage(title, message?, options?)` | `Promise<void>` |
+| 二次确认 | `confirmAction({ title, message?, confirmText?, cancelText?, destructive? })` | `Promise<boolean>` |
+| 选择日期 | `pickDate({ title?, initial?, min?, max?, ... })` | `Promise<Date \| null>` |
+| 选择时间 | `pickTime({ title?, initial?, minuteStep?, ... })` | `Promise<TimeValue \| null>` |
+
+业务代码只从 `src/lib/alert.ts` 与 `src/lib/picker.ts` 发起请求，`DialogHost` 挂在 `App.tsx` 根节点统一渲染。请求按调用顺序排队；点遮罩或返回键关闭时返回各自的取消值（消息 `undefined`、确认 `false`、选择器 `null`）。
+
+```ts
+const day = await pickDate({ title: '记录日期' });
+if (!day) return; // 用户取消
+```
+
+组件清单：
+
+- `src/components/ui/DialogSheet.tsx` — 通用容器：墨绿遮罩、白色圆角卡、语义图标、220ms 淡入上滑；系统开启「减少动态效果」时自动去掉动画。
+- `src/components/ui/DatePicker.tsx` — 周一起始、固定 6 行的月历，支持可选范围与今日标记。
+- `src/components/ui/TimePicker.tsx` — 时 / 分两列滚动选择，分钟刻度可配置（默认 5 分钟）。
+- `src/components/ui/DialogHost.tsx` — 弹窗队列宿主，按类型分派内容与结果。
+
+设计令牌全部取自 `src/theme`，其中新增 `Colors.backdrop` 提供亮暗两套遮罩色。月历与时间计算分别收敛在 `src/domain/calendar.ts`、`src/domain/time.ts`，都是可注入固定时间的纯函数。开发环境下底部导航会多出「组件预览」Tab，可逐个查看四种效果；生产构建不包含该 Tab。
 
 ## 测试
 
