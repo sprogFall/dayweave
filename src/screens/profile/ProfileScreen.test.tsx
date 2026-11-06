@@ -1,12 +1,14 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { useCardLayoutStore } from '@/stores/cardLayout.store';
 
 import { ProfileScreen } from './ProfileScreen';
 
+const mockNavigate = jest.fn();
+
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: mockNavigate }),
 }));
 
 const mockIdentity = {
@@ -51,11 +53,17 @@ describe('ProfileScreen', () => {
     expect(screen.getByLabelText('退出登录')).toBeTruthy();
   });
 
-  it('renders the identity store profile and shared family section', () => {
+  it('opens family management from the menu alongside statistics', () => {
+    render(<ProfileScreen />);
+    fireEvent.press(screen.getByLabelText('家庭管理'));
+    expect(mockNavigate).toHaveBeenCalledWith('FamilyManagement');
+    expect(screen.getByText('数据统计')).toBeTruthy();
+  });
+
+  it('renders the identity store profile', () => {
     mockIdentity.profile = { displayName: '共享昵称', avatarUrl: null };
     render(<ProfileScreen />);
     expect(screen.getByText('共享昵称')).toBeTruthy();
-    expect(screen.getByText('共享家庭')).toBeTruthy();
     expect(screen.getByLabelText('刷新共享资料')).toBeTruthy();
     expect(mockIdentity.load).not.toHaveBeenCalled();
   });

@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -12,6 +14,7 @@ import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { confirmAction, showMessage } from '@/lib/alert';
 import { toUserMessage } from '@/lib/errors';
+import type { MainStackParamList } from '@/navigation/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCardLayoutStore } from '@/stores/cardLayout.store';
 import { useWorkStore } from '@/stores/work.store';
@@ -32,6 +35,7 @@ interface MenuEntry {
 
 const MENU_ENTRIES: readonly MenuEntry[] = [
   { id: 'stats', label: '数据统计', icon: 'stats-chart-outline', tint: 'blue' },
+  { id: 'family', label: '家庭管理', icon: 'people-outline', tint: 'teal' },
   { id: 'tools', label: '工具管理', icon: 'grid-outline', tint: 'violet' },
   { id: 'notices', label: '消息通知', icon: 'notifications-outline', tint: 'amber' },
   { id: 'help', label: '帮助与反馈', icon: 'help-circle-outline', tint: 'teal' },
@@ -39,6 +43,7 @@ const MENU_ENTRIES: readonly MenuEntry[] = [
 
 export function ProfileScreen() {
   const colors = useColors();
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const signOut = useAuthStore((state) => state.signOut);
   const hydrateCards = useCardLayoutStore((state) => state.hydrate);
   const loadWork = useWorkStore((state) => state.load);
@@ -103,7 +108,7 @@ export function ProfileScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={entry.label}
-                onPress={notifyPreview}
+                onPress={() => entry.id === 'family' ? navigation.navigate('FamilyManagement') : notifyPreview()}
                 style={({ pressed }) => [styles.menuRow, { opacity: pressed ? 0.6 : 1 }]}
               >
                 <IconTile name={entry.icon} tint={entry.tint} size="sm" />

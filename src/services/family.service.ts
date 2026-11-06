@@ -49,6 +49,32 @@ export async function listFamilyMembers(familyId: string): Promise<FamilyMember[
   return members.map((row) => toFamilyMember(row, byId.get(row.user_id)));
 }
 
+export async function joinFamily(code: string): Promise<string> {
+  const normalized = typeof code === 'string' ? code.trim().toUpperCase() : '';
+  if (!/^[A-Z0-9]{8}$/.test(normalized)) throw new Error('请输入 8 位家庭邀请码。');
+  // 必须走邀请码 RPC，不直接 INSERT 成员，避免绕过加入校验。
+  const { data, error } = await supabase.rpc('join_family', { p_code: normalized });
+  if (error) {
+    if (error.message === '邀请码不存在' || error.message === '你已在该家庭中') throw new Error(error.message);
+    throw new Error('加入家庭失败，请稍后重试。');
+  }
+  if (typeof data !== 'string' || !UUID.test(data)) throw new Error('加入家庭失败，请刷新后重试。');
+  return data;
+}
+
+export async function leaveFamily(familyId: string, userId: string): Promise<void> {
+  validateId(familyId, '家庭');
+  validateId(userId, '用户');
+  const { data, error: lookupError } = await supabase.from('families')
+    .select('owner_id').eq('id', familyId).single<{ owner_id: string }>();
+  if (lookupError || !data) throw new Error('读取家庭信息失败，请刷新后重试。');
+  if (data.owner_id === userId) throw new Error('家庭创建者不能退出，请先在 family-piggy 处理家庭归属。');
+  // 只删除自己的成员关系；不删除家庭、账本或历史账务。
+  const { error } = await supabase.from('family_members').delete()
+    .eq('family_id', familyId).eq('user_id', userId);
+  if (error) throw new Error('退出家庭失败，请稍后重试。');
+}
+
 export async function renameFamily(familyId: string, name: string): Promise<void> {
   validateId(familyId, '家庭');
   if (typeof name !== 'string' || !name.trim() || Array.from(name.trim()).length > 12) {

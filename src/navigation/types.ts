@@ -21,6 +21,7 @@ export type MainStackParamList = {
   ToolDetail: { toolId: ToolId };
   /** 工时记录已实现，不再走工具占位页。 */
   WorkHours: undefined;
+  FamilyManagement: undefined;
   /** 新建任务不带参数；带 taskId 时为编辑。 */
   WorkTaskEdit: { taskId?: string } | undefined;
 };

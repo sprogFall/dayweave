@@ -175,7 +175,8 @@ screens ──► stores ──► services ──► lib/supabase
 - 统一的应用内弹窗 / 确认框 / 日历 / 时间选择器组件与 Promise API（替代平台原生效果），开发态「组件预览」Tab；
 - 应用内更新：检查公开 GitHub Release、经代理下载 APK、校验大小并拉起系统安装器，入口在「我的」页；
 - `dw_work_tasks`、`dw_work_logs` 两张业务表与 RLS；用户资料、家庭和成员复用 family-piggy 的 `profiles`、`families`、`family_members`，是自建对象 `dw_` 前缀规则的明确例外；
-- `identity.store` 按账号缓存共享资料 / 家庭 / 成员 24 小时，启动、回前台、导航和每日检查时按需加载，「我的」提供强制刷新；不使用 Realtime。共享家庭只读与创建者改名（调用既有 `rename_family` RPC），不提供创建 / 加入 / 解散；头像支持共享 URL 和手动编辑公开图片链接。
+- `identity.store` 按账号缓存共享资料 / 家庭 / 成员 24 小时，启动、回前台、导航与前台定时检查时按需加载；不使用 Realtime。家庭管理独立页面入口与「数据统计」同组，支持当前家庭（主家庭、本设备按账号持久化）、邀请码加入（必须调用既有 `join_family` RPC）、创建者改名（`rename_family`）、普通成员确认退出，不提供创建 / 解散。退出与刷新后选择失效时回落到有效家庭或空。
+- 「我的」资料卡只展示个人资料，右侧小编辑 / 刷新图标；点击头像使用应用内弹窗选择相册上传共用 `avatars` bucket、编辑 URL 或确认移除头像，不申请相机 / 麦克风权限。
 
 ### 工时体系约定
 

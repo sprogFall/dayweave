@@ -6,6 +6,7 @@ import { TabIcon } from '@/components/ui/TabIcon';
 import { findTool } from '@/domain/toolCatalog';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { RegisterScreen } from '@/screens/auth/RegisterScreen';
+import { FamilyManagementScreen } from '@/screens/family/FamilyManagementScreen';
 import { ComponentGallery } from '@/screens/preview/ComponentGallery';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { TasksScreen } from '@/screens/tasks/TasksScreen';
@@ -88,6 +89,11 @@ export function MainNavigator() {
           ...stackOptions,
           title: findTool(route.params.toolId)?.title ?? '工具',
         })}
+      />
+      <RootStack.Screen
+        name="FamilyManagement"
+        component={FamilyManagementScreen}
+        options={{ ...stackOptions, title: '家庭管理' }}
       />
       <RootStack.Screen
         name="WorkHours"

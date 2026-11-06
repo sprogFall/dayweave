@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { queryBuilder } from '@/test/postgrest';
-import { listFamilyMembers, listMyFamilies, renameFamily } from './family.service';
+import { joinFamily, leaveFamily, listFamilyMembers, listMyFamilies, renameFamily } from './family.service';
 
 const userId = '11111111-1111-4111-8111-111111111111';
 const familyId = '22222222-2222-4222-8222-222222222222';
@@ -68,6 +68,55 @@ it('returns safe Chinese errors for every backend failure', async () => {
   await expect(listFamilyMembers(familyId)).rejects.toThrow('读取家庭成员失败');
   rpcMock.mockResolvedValue({ error: { message: 'secret' } });
   await expect(renameFamily(familyId, '家')).rejects.toThrow('修改家庭名称失败');
+});
+
+it('joins only through the invite-code RPC and normalizes input', async () => {
+  rpcMock.mockResolvedValue({ data: familyId, error: null });
+  await expect(joinFamily(' abcd2345 ')).resolves.toBe(familyId);
+  expect(rpcMock).toHaveBeenCalledWith('join_family', { p_code: 'ABCD2345' });
+  expect(fromMock).not.toHaveBeenCalled();
+});
+
+it.each(['', '  ', 'abc', 'ABCD234!', 'A'.repeat(9)])('rejects malformed invite code %s', async (code) => {
+  await expect(joinFamily(code)).rejects.toThrow('邀请码');
+  expect(rpcMock).not.toHaveBeenCalled();
+});
+
+it('maps known join errors without leaking arbitrary backend messages', async () => {
+  rpcMock.mockResolvedValueOnce({ error: { message: '邀请码不存在' } });
+  await expect(joinFamily('ABCD2345')).rejects.toThrow('邀请码不存在');
+  rpcMock.mockResolvedValueOnce({ error: { message: '你已在该家庭中' } });
+  await expect(joinFamily('ABCD2345')).rejects.toThrow('你已在该家庭中');
+  rpcMock.mockResolvedValueOnce({ error: { message: 'internal secret' } });
+  await expect(joinFamily('ABCD2345')).rejects.toThrow('加入家庭失败');
+  rpcMock.mockResolvedValueOnce({ data: null, error: null });
+  await expect(joinFamily('ABCD2345')).rejects.toThrow('加入家庭失败');
+});
+
+it('checks the true family owner before deleting only the current user membership', async () => {
+  const lookup = queryBuilder({ data: { owner_id: 'other-user' }, error: null });
+  const deletion = queryBuilder({ data: [{ user_id: userId }], error: null });
+  fromMock.mockReturnValueOnce(lookup).mockReturnValueOnce(deletion);
+  await expect(leaveFamily(familyId, userId)).resolves.toBeUndefined();
+  expect(lookup.eq).toHaveBeenCalledWith('id', familyId);
+  expect(deletion.delete).toHaveBeenCalled();
+  expect(deletion.eq).toHaveBeenCalledWith('family_id', familyId);
+  expect(deletion.eq).toHaveBeenCalledWith('user_id', userId);
+  expect(fromMock).toHaveBeenNthCalledWith(2, 'family_members');
+});
+
+it('blocks owners and failed lookups rather than risking a broken owner membership', async () => {
+  fromMock.mockReturnValueOnce(queryBuilder({ data: { owner_id: userId }, error: null }));
+  await expect(leaveFamily(familyId, userId)).rejects.toThrow('家庭创建者不能退出');
+  expect(fromMock).toHaveBeenCalledTimes(1);
+  fromMock.mockReturnValueOnce(queryBuilder({ data: null, error: { message: 'secret' } }));
+  await expect(leaveFamily(familyId, userId)).rejects.toThrow('读取家庭信息失败');
+});
+
+it('reports a readable leave error', async () => {
+  fromMock.mockReturnValueOnce(queryBuilder({ data: { owner_id: 'other' }, error: null }))
+    .mockReturnValueOnce(queryBuilder({ error: { message: 'secret' } }));
+  await expect(leaveFamily(familyId, userId)).rejects.toThrow('退出家庭失败');
 });
 
 it('does not silently treat a failed profiles request as missing profiles', async () => {

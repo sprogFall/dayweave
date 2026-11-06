@@ -1,9 +1,9 @@
 -- Dayweave 业务数据库结构（幂等，可重复执行）
 -- 共享 profiles / families / family_members 与 rename_family RPC 由 family-piggy 管理。
--- 前置：先部署 family-piggy schema 及家庭管理迁移；本文件不复制或修改其表/权限。
+-- 前置：先部署 family-piggy schema 及家庭管理迁移（含 join_family / rename_family RPC）；本文件不复制或修改其表/权限。
 -- 升级旧库请先执行 20261107000000_use_shared_profiles_and_families.sql，安全迁移并移除 dw_profiles。
 -- 既有 family_members INSERT 仅检查本人 user_id，可能绕过邀请码加入任意家庭；
--- 此安全问题需与 family-piggy 另行协调。本次只读家庭与 owner rename，不扩权限。
+-- 此安全问题需与 family-piggy 另行协调。客户端加入只调用 join_family 校验邀请码，不直接 INSERT 成员。
 
 do $$
 begin

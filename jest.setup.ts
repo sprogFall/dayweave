@@ -28,6 +28,7 @@ jest.mock('expo-file-system', () => ({
   getInfoAsync: jest.fn(async () => ({ exists: false, uri: '', size: 0, isDirectory: false })),
   makeDirectoryAsync: jest.fn(async () => undefined),
   readDirectoryAsync: jest.fn(async () => []),
+  readAsStringAsync: jest.fn(async () => ''),
   deleteAsync: jest.fn(async () => undefined),
   getContentUriAsync: jest.fn(async (uri: string) => `content://${uri}`),
   createDownloadResumable: jest.fn(() => ({

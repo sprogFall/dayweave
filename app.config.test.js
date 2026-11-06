@@ -73,6 +73,18 @@ describe('Android 权限', () => {
   });
 });
 
+describe('头像图片选择配置', () => {
+  it('声明用途清晰的相册权限且不申请相机与录音权限', () => {
+    const entry = expo.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-image-picker');
+    expect(entry).toBeDefined();
+    expect(entry[1]).toEqual({
+      photosPermission: '允许 Dayweave 选择照片以设置个人头像。',
+      cameraPermission: false,
+      microphonePermission: false,
+    });
+  });
+});
+
 describe('原生启动屏', () => {
   it('启动屏使用应用图标，并与亮暗主题底色保持一致', () => {
     const entry = expo.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-splash-screen');

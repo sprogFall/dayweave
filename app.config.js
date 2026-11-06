@@ -21,6 +21,14 @@ module.exports = {
       'expo-asset',
       'expo-font',
       [
+        'expo-image-picker',
+        {
+          photosPermission: '允许 Dayweave 选择照片以设置个人头像。',
+          cameraPermission: false,
+          microphonePermission: false,
+        },
+      ],
+      [
         'expo-splash-screen',
         {
           image: ICON_PATH,
