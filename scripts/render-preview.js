@@ -66,6 +66,21 @@ function glyph(name) {
 
 const mocks = {
   '@/lib/supabase': { supabase: {} },
+  // 「我的」页的更新卡片会间接加载这些原生模块，SSR 环境只需静态配置与占位实现。
+  'expo-constants': {
+    __esModule: true,
+    default: { expoConfig: { version: '0.2.0', android: { package: 'com.dayweave.app' } } },
+  },
+  'expo-file-system': {
+    documentDirectory: 'file:///docs/',
+    getInfoAsync: async () => ({ exists: false }),
+    makeDirectoryAsync: async () => undefined,
+    readDirectoryAsync: async () => [],
+    deleteAsync: async () => undefined,
+    getContentUriAsync: async (uri) => uri,
+    createDownloadResumable: () => ({ downloadAsync: async () => undefined }),
+  },
+  'expo-intent-launcher': { startActivityAsync: async () => undefined },
   'react-native-safe-area-context': {
     SafeAreaView: ({ style, children }) => React.createElement(View, { style }, children),
     SafeAreaProvider: ({ children }) => children,
