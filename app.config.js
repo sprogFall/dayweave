@@ -38,6 +38,8 @@ module.exports = {
     android: {
       package: 'com.dayweave.app',
       versionCode: Number(process.env.ANDROID_VERSION_CODE || 1),
+      // 应用内更新下载完 APK 后需要拉起系统安装器
+      permissions: ['REQUEST_INSTALL_PACKAGES'],
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: BRAND_COLOR,

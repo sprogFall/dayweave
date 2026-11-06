@@ -67,6 +67,12 @@ describe('发布图标', () => {
   });
 });
 
+describe('Android 权限', () => {
+  it('声明安装未知应用权限，供应用内更新拉起系统安装器', () => {
+    expect(expo.android.permissions).toContain('REQUEST_INSTALL_PACKAGES');
+  });
+});
+
 describe('原生启动屏', () => {
   it('启动屏使用应用图标，并与亮暗主题底色保持一致', () => {
     const entry = expo.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-splash-screen');

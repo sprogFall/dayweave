@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Fragment, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { UpdateCard } from '@/components/UpdateCard';
 import { Card } from '@/components/ui/Card';
 import { IconTile } from '@/components/ui/IconTile';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -151,6 +152,8 @@ export function ProfileScreen() {
             </View>
           ))}
         </Card>
+
+        <UpdateCard />
 
         <PrimaryButton
           label="退出登录"

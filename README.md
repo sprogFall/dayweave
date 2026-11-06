@@ -313,6 +313,21 @@ if (!day) return; // 用户取消
 
 设计令牌全部取自 `src/theme`，其中新增 `Colors.backdrop` 提供亮暗两套遮罩色。月历与时间计算分别收敛在 `src/domain/calendar.ts`、`src/domain/time.ts`，都是可注入固定时间的纯函数。开发环境下底部导航会多出「组件预览」Tab，可逐个查看四种效果；生产构建不包含该 Tab。
 
+## 应用内更新
+
+「我的」页底部有**应用更新**卡片：检查 GitHub 最新正式 Release → 比对版本 → 下载 APK → 校验大小 → 拉起系统安装器。不自动联网，全部由用户手动触发，可忽略某个版本。
+
+| 环节 | 说明 |
+| --- | --- |
+| 检查更新 | 匿名读取 `api.github.com/repos/sprogFall/dayweave/releases/latest`，天然排除草稿与预发布；仓库需公开，否则返回 404 并显示「暂时无法获取更新信息」 |
+| 下载地址 | 优先级为 Release 说明里声明的镜像 → 代理 → GitHub 直连，逐个重试并去重 |
+| 代理配置 | `EXPO_PUBLIC_UPDATE_PROXY_PREFIX`（默认 `https://gh-proxy.com/`）；置为空字符串可禁用代理。只代理 `github.com/.../releases/download/...` 的 https 资产 |
+| 自定义镜像 | 在 Release 正文写一行 `APK-Mirror: https://<镜像地址>` 即可，支持多行、自动去重 |
+| 完整性 | 校验 GitHub 提供的资产大小；APK 是否被篡改由 Android 安装器的签名校验兜底，因此不做大文件流式哈希，避免拖慢安装 |
+| 安装 | 仅 Android；`app.config.js` 已声明 `REQUEST_INSTALL_PACKAGES`，首次安装需授予「安装未知应用」权限，卡片会给出授权入口 |
+
+实现分层：`src/domain/app-version.ts` 与 `src/domain/update.ts` 放纯计算，`src/types/github.ts` 负责 API 行映射，`src/services/update.service.ts` 访问网络与文件系统，`src/stores/update.store.ts` 编排状态，`src/components/UpdateCard.tsx` 负责展示。
+
 ## 测试
 
 ```bash
