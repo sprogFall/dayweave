@@ -5,6 +5,7 @@ import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SplashView } from '@/components/SplashView';
+import { DialogHost } from '@/components/ui/DialogHost';
 import { AuthNavigator, MainNavigator } from '@/navigation';
 import { useAuthStore } from '@/stores/auth.store';
 import { LIGHT_COLORS, DARK_COLORS } from '@/theme/palette';
@@ -40,6 +41,7 @@ export default function App() {
       <NavigationContainer theme={navigationTheme}>
         {status === 'loading' ? <SplashView /> : status === 'signedIn' ? <MainNavigator /> : <AuthNavigator />}
       </NavigationContainer>
+      <DialogHost />
     </SafeAreaProvider>
   );
 }

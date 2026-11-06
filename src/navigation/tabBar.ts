@@ -17,6 +17,11 @@ export const TAB_BAR_LABEL_STYLE: TextStyle = {
   includeFontPadding: false,
 };
 
+/** 11px 小字与细线图标不用 faint，未选中态也要保持足够对比度。 */
+export function getTabBarTints(colors: Colors): { active: string; inactive: string } {
+  return { active: colors.primary, inactive: colors.muted };
+}
+
 /** 高度必须自己算：一旦在 style 里写死 height，库就不会再自动叠加底部安全区。 */
 export function getTabBarStyle(colors: Colors, bottomInset: number): ViewStyle {
   return {

@@ -1,9 +1,4 @@
 # AGENTS.md — Dayweave 开发规范
-
-> 给 AI coding agent 的强制约定。
-> 开始改动前先读本文件；需要了解项目现状时再读 `README.md`。
-> 本文件只回答一件事：**在这个仓库里，代码应该怎么改。**
-
 ---
 
 ## 0. 工作方式
@@ -14,7 +9,7 @@
 4. **小步验证**：每完成一个可独立验证的改动先跑相关测试；提交前必须全量通过。
 5. **安全第一**：不提交真实密钥、连接串、token、用户数据或调试响应转储。
 6. **不擅自操作远端**：未得到用户明确要求，不执行 `git push`、不创建 / 修改 tag、不改远端配置。
-7. **产品边界**：Dayweave 是生活助手，不引入旧项目（family-piggy）的记账、家庭账本等业务概念。
+7. **产品边界**：Dayweave 是生活助手。
 
 ---
 
@@ -28,7 +23,7 @@
 | 后端 | Supabase Auth / Postgres / RLS / Realtime / Storage | 连接信息只通过 `EXPO_PUBLIC_*` 注入；表名统一 `dw_` 前缀 |
 | 路由 | React Navigation 7 | 路由与参数类型统一在 `navigation/` 定义 |
 | 测试 | Jest + jest-expo + React Native Testing Library | 测试必须离线、确定、快速 |
-| 弹窗 | `src/lib/alert.ts` | 业务代码不直接调 `Alert.alert` / `window.alert` |
+| 弹窗 | `src/lib/alert.ts` / `src/lib/picker.ts` | 业务代码不直接调 `Alert.alert` / `window.alert`；禁止平台原生弹窗与日期时间选择器，统一用 `components/ui/DialogSheet` 体系 |
 | 主题 | `src/theme` | 禁止在组件中散落硬编码颜色、间距、字号 |
 
 ### 依赖安装
@@ -174,6 +169,7 @@ screens ──► stores ──► services ──► lib/supabase
 - 「今天 / 工具 / 待办 / 我的」导航外壳与静态页面大纲（演示数据）；
 - 工具详情占位页，工具功能尚未实现；
 - 亮暗主题与基础组件；
+- 统一的应用内弹窗 / 确认框 / 日历 / 时间选择器组件与 Promise API（替代平台原生效果），开发态「组件预览」Tab；
 - `dw_profiles` 数据库表与 RLS。
 
 > 不要假设尚未实现的功能存在。新增产品功能前，先明确数据模型、RLS 策略、加载态、空态、错误态和测试。

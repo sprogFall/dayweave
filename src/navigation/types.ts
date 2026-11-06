@@ -12,6 +12,8 @@ export type MainTabParamList = {
   Tools: undefined;
   Tasks: undefined;
   Profile: undefined;
+  /** 仅开发环境注册的组件预览页。 */
+  Gallery: undefined;
 };
 
 export type MainStackParamList = {

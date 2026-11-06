@@ -1,6 +1,11 @@
 import { LIGHT_COLORS } from '@/theme/palette';
 
-import { getTabBarStyle, TAB_BAR_CONTENT_HEIGHT, TAB_BAR_LABEL_STYLE } from './tabBar';
+import {
+  getTabBarStyle,
+  getTabBarTints,
+  TAB_BAR_CONTENT_HEIGHT,
+  TAB_BAR_LABEL_STYLE,
+} from './tabBar';
 
 /** 图标容器 28 + 上下内边距各 5 + 标签行高 14。 */
 const REQUIRED_CONTENT_HEIGHT = 52;
@@ -21,5 +26,13 @@ describe('底部标签栏样式', () => {
     expect(style.height).toBe(TAB_BAR_CONTENT_HEIGHT + 34);
     expect(style.backgroundColor).toBe(LIGHT_COLORS.card);
     expect(style.borderTopColor).toBe(LIGHT_COLORS.border);
+  });
+
+  it('未选中标签不用过淡的 faint，保证小字号可读', () => {
+    const tints = getTabBarTints(LIGHT_COLORS);
+
+    expect(tints.active).toBe(LIGHT_COLORS.primary);
+    expect(tints.inactive).toBe(LIGHT_COLORS.muted);
+    expect(tints.inactive).not.toBe(LIGHT_COLORS.faint);
   });
 });

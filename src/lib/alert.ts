@@ -1,6 +1,6 @@
-import { Alert, Platform } from 'react-native';
+import { DEFAULT_MESSAGE_TEXT, enqueueDialog } from '@/lib/dialog';
 
-interface ConfirmOptions {
+export interface ConfirmOptions {
   title: string;
   message?: string;
   confirmText?: string;
@@ -8,45 +8,24 @@ interface ConfirmOptions {
   destructive?: boolean;
 }
 
-/** 跨平台确认框；业务代码统一从这里调用，避免 Web 与原生行为不一致。 */
-export function confirmAction(options: ConfirmOptions): Promise<boolean> {
-  const {
-    title,
-    message,
-    confirmText = '确定',
-    cancelText = '取消',
-    destructive = false,
-  } = options;
-
-  if (Platform.OS === 'web') {
-    return Promise.resolve(
-      typeof window === 'undefined' ? false : window.confirm(message ? `${title}\n\n${message}` : title),
-    );
-  }
-
-  return new Promise((resolve) => {
-    Alert.alert(
-      title,
-      message,
-      [
-        { text: cancelText, style: 'cancel', onPress: () => resolve(false) },
-        {
-          text: confirmText,
-          style: destructive ? 'destructive' : 'default',
-          onPress: () => resolve(true),
-        },
-      ],
-      { cancelable: true, onDismiss: () => resolve(false) },
-    );
-  });
+export interface MessageOptions {
+  confirmText?: string;
 }
 
-export function showMessage(title: string, message?: string): void {
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined') {
-      window.alert(message ? `${title}\n\n${message}` : title);
-    }
-    return;
-  }
-  Alert.alert(title, message);
+/** 统一的确认框入口；平台原生 Alert / window.confirm 不再参与 UI。 */
+export function confirmAction(options: ConfirmOptions): Promise<boolean> {
+  return enqueueDialog<boolean>({ kind: 'confirm', ...options });
+}
+
+export function showMessage(
+  title: string,
+  message?: string,
+  options: MessageOptions = {},
+): Promise<void> {
+  return enqueueDialog<void>({
+    kind: 'message',
+    title,
+    message,
+    confirmText: options.confirmText ?? DEFAULT_MESSAGE_TEXT,
+  });
 }

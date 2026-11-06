@@ -15,6 +15,8 @@ export interface Colors {
   dangerSoft: string;
   onPrimary: string;
   shadow: string;
+  /** 弹窗遮罩，浅色偏墨绿、深色偏纯黑，保持与背景同色系。 */
+  backdrop: string;
 }
 
 /** 柔和色块与对应前景色，用于工具图标底座、标签与统计卡片。 */
@@ -42,6 +44,7 @@ export const LIGHT_COLORS: Colors = {
   dangerSoft: '#FDE9E9',
   onPrimary: '#FFFFFF',
   shadow: '#0F2C22',
+  backdrop: 'rgba(12, 35, 27, 0.42)',
 };
 
 export const DARK_COLORS: Colors = {
@@ -61,6 +64,7 @@ export const DARK_COLORS: Colors = {
   dangerSoft: '#3A2223',
   onPrimary: '#0B1410',
   shadow: '#000000',
+  backdrop: 'rgba(0, 0, 0, 0.66)',
 };
 
 export const LIGHT_TINTS: TintSet = {
