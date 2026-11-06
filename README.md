@@ -22,7 +22,9 @@ Dayweave 是一个面向个人生活场景的助手工具。当前仓库处于**
 - 注册时自动建立用户资料；
 - 登录态与未登录态路由切换；
 - 「今天 / 工具 / 待办 / 我的」四 Tab 应用外壳与页面大纲；
-- 工具详情占位页（功能留空，仅定版式）；
+- 工时：任务（预计工时、时间范围、完成状态）下挂分钟级工时记录，任务与记录都可删除；
+- 可配置卡片：从注册表挑卡片、调顺序，配置按用户存在本地；
+- 工具详情占位页（未实现的工具仍走占位版式）；
 - 亮色 / 暗色主题、统一设计令牌与基础 UI 组件；
 - Supabase 行级安全（RLS）初始化脚本；
 - Jest 离线测试、TypeScript 严格类型检查与 GitHub Actions CI。
@@ -31,17 +33,19 @@ Dayweave 是一个面向个人生活场景的助手工具。当前仓库处于**
 
 ## 页面大纲
 
-当前阶段先把页面风格与信息结构定下来：四个主页面均为静态演示，页面上的工时、待办、天气等数字是示例数据，接入真实 store 后替换；工具详情页只保留骨架，具体工具功能尚未开发。
+当前阶段先把页面风格与信息结构定下来。「今天」与「我的」的卡片已经接上真实工时数据，卡片本身可以通过页面上的「配置」入口增删和排序；「待办」页与尚未实现的工具仍是示例数据与占位骨架。
 
 ![页面大纲](./docs/preview/overview.png)
 
 | 页面 | 内容 | 预览 |
 | --- | --- | --- |
-| 今天 | 问候与日期、今日概览、常用工具快捷入口、本周小结 | [`today.png`](./docs/preview/today.png) |
+| 今天 | 问候与日期、可配置数据卡片、常用工具快捷入口 | [`today.png`](./docs/preview/today.png) |
 | 工具 | 搜索、我的常用、分类筛选、工具列表 | [`tools.png`](./docs/preview/tools.png) |
 | 待办 | 完成度概览、分类筛选、今天 / 明天分组 | [`tasks.png`](./docs/preview/tasks.png) |
-| 我的 | 用户信息、数据统计、设置入口、退出登录 | [`profile.png`](./docs/preview/profile.png) |
+| 我的 | 用户信息、可配置数据卡片、设置入口、退出登录 | [`profile.png`](./docs/preview/profile.png) |
 | 工具详情 | 标题栏 + 留白占位，等待具体功能填充 | [`tool-detail.png`](./docs/preview/tool-detail.png) |
+| 工时记录 | 任务列表与进度、任务内记工时、手动完成 / 删除任务 | — |
+| 任务编辑 | 任务名、描述、预计工时、起止日期 | — |
 
 设计语言：浅薄荷到近白的竖向渐变背景、白色圆角卡片、深靛蓝标题、`#2CAE73` 主色与马卡龙色系图标底色；四个 Tab 各有专属语义图标与选中态色块，亮色 / 暗色下都有对应取值。预览图由 `node scripts/render-preview.js` 用真实组件渲染导出（`react-native-web` SSR + 无头浏览器截图），仅作为版式参考；改动页面或底部标签样式后重跑脚本即可刷新这 6 张图。
 
@@ -139,12 +143,13 @@ npm run check
 
 ## 当前数据库
 
-`supabase/schema.sql` 当前只创建 `dw_profiles` 基础表，并包含：
+`supabase/schema.sql` 当前创建三张表：
 
-- 注册后自动创建用户资料；
-- `updated_at` 自动维护；
-- 启用 RLS，仅允许用户读写自己的资料；
-- 最小权限授权。
+- `dw_profiles`：注册后自动创建用户资料，`updated_at` 自动维护；
+- `dw_work_tasks`：工时任务，含 `estimated_minutes`（分钟）、`start_date` / `due_date`、`status`（`open` / `done`）；
+- `dw_work_logs`：挂在任务下的工时记录，含 `content`、`minutes`、`work_date`；删除任务时由外键级联删除。
+
+三张表都启用 RLS，只允许用户读写自己的行（`auth.uid()`），并只授予 `authenticated` 需要的权限。
 
 ### 表名前缀约定
 

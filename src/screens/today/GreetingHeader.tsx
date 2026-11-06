@@ -9,10 +9,9 @@ interface GreetingHeaderProps {
   greeting: string;
   name: string;
   dateLabel: string;
-  weather: string;
 }
 
-export function GreetingHeader({ greeting, name, dateLabel, weather }: GreetingHeaderProps) {
+export function GreetingHeader({ greeting, name, dateLabel }: GreetingHeaderProps) {
   const colors = useColors();
   const avatarGradient = usePrimaryGradient();
 
@@ -32,7 +31,6 @@ export function GreetingHeader({ greeting, name, dateLabel, weather }: GreetingH
 
       <View style={styles.pills}>
         <InfoPill icon="calendar-outline" label={dateLabel} />
-        <InfoPill icon="partly-sunny-outline" label={weather} />
       </View>
     </View>
   );

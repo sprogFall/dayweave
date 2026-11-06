@@ -1,19 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { UpdateCard } from '@/components/UpdateCard';
+import { CardBoard } from '@/components/cards/CardBoard';
 import { Card } from '@/components/ui/Card';
 import { IconTile } from '@/components/ui/IconTile';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Screen } from '@/components/ui/Screen';
-import { StatBlock } from '@/components/ui/StatBlock';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { confirmAction, showMessage } from '@/lib/alert';
 import { toUserMessage } from '@/lib/errors';
 import { getMyProfile } from '@/services/profile.service';
 import { useAuthStore } from '@/stores/auth.store';
-import { PROFILE_STATS } from './profile.data';
+import { useCardLayoutStore } from '@/stores/cardLayout.store';
+import { useWorkStore } from '@/stores/work.store';
 import {
   radius,
   spacing,
@@ -43,9 +45,17 @@ export function ProfileScreen() {
   const avatarGradient = usePrimaryGradient();
   const session = useAuthStore((state) => state.session);
   const signOut = useAuthStore((state) => state.signOut);
+  const hydrateCards = useCardLayoutStore((state) => state.hydrate);
+  const loadWork = useWorkStore((state) => state.load);
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    void hydrateCards();
+    void loadWork();
+  }, [hydrateCards, loadWork]);
 
   useEffect(() => {
     let active = true;
@@ -122,16 +132,14 @@ export function ProfileScreen() {
           </View>
         </Card>
 
-        <Card style={styles.stats}>
-          {PROFILE_STATS.map((stat, index) => (
-            <Fragment key={stat.id}>
-              {index > 0 ? (
-                <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              ) : null}
-              <StatBlock label={stat.label} value={stat.value} unit={stat.unit} tint={stat.tint} />
-            </Fragment>
-          ))}
-        </Card>
+        <View style={styles.section}>
+          <SectionHeader
+            title="我的数据"
+            actionLabel={editing ? '完成' : '配置'}
+            onAction={() => setEditing((value) => !value)}
+          />
+          <CardBoard scope="profile" editing={editing} onRequestEdit={() => setEditing(true)} />
+        </View>
 
         <Card padded={false} style={styles.menu}>
           {MENU_ENTRIES.map((entry, index) => (
@@ -186,8 +194,7 @@ const styles = StyleSheet.create({
   profileCopy: { flex: 1, gap: spacing.xs },
   name: { fontSize: typography.subtitle, fontWeight: '700' },
   email: { fontSize: typography.caption },
-  stats: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md },
-  divider: { width: 1, alignSelf: 'stretch', marginBottom: spacing.xs },
+  section: { gap: spacing.lg },
   menu: { overflow: 'hidden' },
   menuDivider: { height: StyleSheet.hairlineWidth, marginLeft: spacing.xl + 30 },
   menuRow: {

@@ -12,6 +12,8 @@ import { TasksScreen } from '@/screens/tasks/TasksScreen';
 import { TodayScreen } from '@/screens/today/TodayScreen';
 import { ToolPlaceholderScreen } from '@/screens/tools/ToolPlaceholderScreen';
 import { ToolsScreen } from '@/screens/tools/ToolsScreen';
+import { WorkHoursScreen } from '@/screens/workhours/WorkHoursScreen';
+import { WorkTaskEditScreen } from '@/screens/workhours/WorkTaskEditScreen';
 import { useColors } from '@/theme';
 import { getTabBarStyle, getTabBarTints, TAB_BAR_LABEL_STYLE } from './tabBar';
 import type { AuthStackParamList, MainStackParamList, MainTabParamList } from './types';
@@ -64,6 +66,13 @@ function MainTabNavigator() {
 
 export function MainNavigator() {
   const colors = useColors();
+  // 二级页统一外观：无阴影、与页面同底色，靠标题区分层级。
+  const stackOptions = {
+    headerShadowVisible: false,
+    headerStyle: { backgroundColor: colors.bg },
+    headerTintColor: colors.text,
+    headerTitleStyle: { fontWeight: '700' as const },
+  };
 
   return (
     <RootStack.Navigator>
@@ -76,11 +85,21 @@ export function MainNavigator() {
         name="ToolDetail"
         component={ToolPlaceholderScreen}
         options={({ route }) => ({
+          ...stackOptions,
           title: findTool(route.params.toolId)?.title ?? '工具',
-          headerShadowVisible: false,
-          headerStyle: { backgroundColor: colors.bg },
-          headerTintColor: colors.text,
-          headerTitleStyle: { fontWeight: '700' },
+        })}
+      />
+      <RootStack.Screen
+        name="WorkHours"
+        component={WorkHoursScreen}
+        options={{ ...stackOptions, title: '工时记录' }}
+      />
+      <RootStack.Screen
+        name="WorkTaskEdit"
+        component={WorkTaskEditScreen}
+        options={({ route }) => ({
+          ...stackOptions,
+          title: route.params?.taskId ? '编辑任务' : '新建任务',
         })}
       />
     </RootStack.Navigator>

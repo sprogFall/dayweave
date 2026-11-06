@@ -21,8 +21,28 @@ export function addMonths(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
+/** 按自然日偏移；用构造函数而非 setDate，跨月与跨年都不会产生时区漂移。 */
+export function addDays(date: Date, delta: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + delta);
+}
+
 export function calendarDayKey(date: Date): string {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/** calendarDayKey 的逆运算；格式不合法返回 null，避免把脏数据当成今天。 */
+export function parseDayKey(key: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const date = new Date(year, month - 1, day);
+  // 2 月 31 日这类会溢出到下个月，回读一次 key 即可识别。
+  return calendarDayKey(date) === key ? date : null;
 }
 
 /** 固定 6 行，月份切换时日历高度不跳动。 */

@@ -8,6 +8,8 @@ import { SplashView } from '@/components/SplashView';
 import { DialogHost } from '@/components/ui/DialogHost';
 import { AuthNavigator, MainNavigator } from '@/navigation';
 import { useAuthStore } from '@/stores/auth.store';
+import { useCardLayoutStore } from '@/stores/cardLayout.store';
+import { useWorkStore } from '@/stores/work.store';
 import { LIGHT_COLORS, DARK_COLORS } from '@/theme/palette';
 import { toColorScheme, useColors } from '@/theme';
 
@@ -19,6 +21,13 @@ export default function App() {
   useEffect(() => {
     void useAuthStore.getState().initialize();
   }, []);
+
+  // 登出后清空业务 store，避免下一个账号看到上一个账号的数据。
+  useEffect(() => {
+    if (status !== 'signedOut') return;
+    useWorkStore.getState().reset();
+    useCardLayoutStore.getState().reset();
+  }, [status]);
 
   const navigationTheme = useMemo(() => {
     const base = scheme === 'dark' ? DarkTheme : DefaultTheme;

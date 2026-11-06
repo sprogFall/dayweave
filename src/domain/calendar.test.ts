@@ -1,5 +1,6 @@
 import {
   WEEKDAY_LABELS,
+  addDays,
   addMonths,
   buildMonthGrid,
   calendarDayKey,
@@ -7,6 +8,7 @@ import {
   formatYearMonth,
   isSameCalendarDay,
   isWithinRange,
+  parseDayKey,
   startOfDay,
 } from './calendar';
 
@@ -53,6 +55,20 @@ describe('calendar', () => {
     expect(isSameCalendarDay(new Date(2026, 10, 6), new Date(2026, 10, 7))).toBe(false);
     expect(formatYearMonth(new Date(2026, 10, 6))).toBe('2026年11月');
     expect(calendarDayKey(new Date(2026, 10, 6))).toBe('2026-11-06');
+  });
+
+  it('parses day keys back into local dates', () => {
+    expect(formatCalendarDay(parseDayKey('2026-11-06') as Date)).toBe('2026年11月6日');
+    expect(parseDayKey('2026-02-31')).toBeNull();
+    expect(parseDayKey('2026-13-01')).toBeNull();
+    expect(parseDayKey('not-a-date')).toBeNull();
+    expect(parseDayKey('2026-1-6')).toBeNull();
+  });
+
+  it('shifts by whole days across month and year boundaries', () => {
+    expect(calendarDayKey(addDays(new Date(2026, 10, 30), 1))).toBe('2026-12-01');
+    expect(calendarDayKey(addDays(new Date(2026, 0, 1), -1))).toBe('2025-12-31');
+    expect(calendarDayKey(addDays(new Date(2026, 10, 6, 23, 30), 1))).toBe('2026-11-07');
   });
 
   it('clears the clock and checks inclusive date ranges', () => {

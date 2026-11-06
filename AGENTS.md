@@ -70,6 +70,7 @@ screens ──► stores ──► services ──► lib/supabase
 | 新数据访问方法 | 对应 `src/services/xxx.service.ts` | `xxx.service.test.ts` |
 | 新全局状态 | 对应 `src/stores/xxx.store.ts` | `xxx.store.test.ts` |
 | 新通用 UI | `src/components/` 或 `src/components/ui/` | 交互测试（如适用） |
+| 新数据卡片 | `src/components/cards/<name>/` | `domain/cardLayout.ts` 的 `CARD_IDS` / `CARD_SCOPES_BY_ID`、`components/cards/meta.ts`、`components/cards/registry.ts` |
 | 新页面 | `src/screens/<功能>/XxxScreen.tsx` | `navigation/types.ts` + `navigation/index.tsx` |
 | 新设计令牌 | `src/theme/` | 浅色 + 深色两套值 |
 | 新数据库变更 | `supabase/migrations/<timestamp>_xxx.sql` | 同步 `supabase/schema.sql`；表名带 `dw_` 前缀 |
@@ -166,11 +167,29 @@ screens ──► stores ──► services ──► lib/supabase
 
 - 邮箱认证与登录态恢复；
 - 用户资料读取 / 更新服务；
-- 「今天 / 工具 / 待办 / 我的」导航外壳与静态页面大纲（演示数据）；
-- 工具详情占位页，工具功能尚未实现；
+- 「今天 / 工具 / 待办 / 我的」导航外壳；
+- 工时：任务（`dw_work_tasks`，预计工时 / 时间范围 / 状态）下挂工时记录（`dw_work_logs`，工作内容 / 分钟）；任务与记录均可删除，任务可手动完成；页面为 `WorkHours` 与 `WorkTaskEdit` 两个路由；
+- 可配置数据卡片：「今天」与「我的」按注册表渲染卡片，支持增删与上下排序，配置按用户存 AsyncStorage；
+- 「待办」页与未实现工具的占位页（演示数据）；
 - 亮暗主题与基础组件；
 - 统一的应用内弹窗 / 确认框 / 日历 / 时间选择器组件与 Promise API（替代平台原生效果），开发态「组件预览」Tab；
 - 应用内更新：检查公开 GitHub Release、经代理下载 APK、校验大小并拉起系统安装器，入口在「我的」页；
-- `dw_profiles` 数据库表与 RLS。
+- `dw_profiles`、`dw_work_tasks`、`dw_work_logs` 三张表与 RLS。
+
+### 工时体系约定
+
+- 工时统一以**分钟**为存储与计算单位，小时只在展示和表单输入时换算；不要引入小数小时字段。
+- 工时记录必须挂在任务下（`task_id` 非空，`on delete cascade`），不存在游离记录。
+- 删除任务时本地 store 必须同步清掉该任务的记录，避免出现孤儿数据。
+- 任务完成 / 重新打开统一走 `setWorkTaskDone`，`status` 与 `completed_at` 必须一起变更。
+- 任务的排序与逾期判断收敛在 `domain/workTasks.ts`，页面不要各写一份。
+
+### 卡片体系约定
+
+- 卡片 id 与可用页面在 `domain/cardLayout.ts` 定义，纯规则（去重、未知 id 过滤、排序）也在那里，必须带测试。
+- 展示文案在 `components/cards/meta.ts`，组件实现在 `components/cards/registry.ts` 登记；`Record<CardId, ...>` 保证漏注册编译失败。
+- 卡片自己从 store 读数据，不接收数据 props；卡片不允许直接访问 services / supabase。
+- 卡片外壳统一用 `CardShell`，编辑态与「查看全部」互斥，不再给卡片单独加点击进详情的整卡手势。
+- 配置持久化按用户分键（`cards:layout:v1:<userId>`），换账号不串配置；空数组代表用户主动删光，不能回落到默认值。
 
 > 不要假设尚未实现的功能存在。新增产品功能前，先明确数据模型、RLS 策略、加载态、空态、错误态和测试。

@@ -19,4 +19,8 @@ export type MainTabParamList = {
 export type MainStackParamList = {
   Tabs: NavigatorScreenParams<MainTabParamList> | undefined;
   ToolDetail: { toolId: ToolId };
+  /** 工时记录已实现，不再走工具占位页。 */
+  WorkHours: undefined;
+  /** 新建任务不带参数；带 taskId 时为编辑。 */
+  WorkTaskEdit: { taskId?: string } | undefined;
 };

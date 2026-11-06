@@ -1,6 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -15,11 +13,10 @@ import {
   DEFAULT_SHORTCUTS,
   TOOL_CATEGORY_OPTIONS,
   filterTools,
-  findTool,
   type ToolCategoryFilter,
 } from '@/domain/toolCatalog';
+import { useOpenTool } from '@/hooks/useOpenTool';
 import { showMessage } from '@/lib/alert';
-import type { MainStackParamList } from '@/navigation/types';
 import { radius, spacing, typography, useColors, usePrimaryGradient } from '@/theme';
 import { ToolCard } from './ToolCard';
 
@@ -27,18 +24,12 @@ const SHORTCUTS = toShortcutItems(DEFAULT_SHORTCUTS);
 
 export function ToolsScreen() {
   const colors = useColors();
-  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const openTool = useOpenTool();
   const addGradient = usePrimaryGradient();
   const [keyword, setKeyword] = useState('');
   const [category, setCategory] = useState<ToolCategoryFilter>('all');
 
   const tools = useMemo(() => filterTools({ category, keyword }), [category, keyword]);
-
-  function openTool(id: string) {
-    const tool = findTool(id);
-    if (!tool) return;
-    navigation.navigate('ToolDetail', { toolId: tool.id });
-  }
 
   function notifyPreview() {
     showMessage('还在路上', '这个入口会在后续版本开放。');

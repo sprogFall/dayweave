@@ -1,32 +1,36 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { CardBoard } from '@/components/cards/CardBoard';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { ShortcutGrid } from '@/components/ui/ShortcutGrid';
+import { ShortcutGrid, toShortcutItems } from '@/components/ui/ShortcutGrid';
 import { formatDateLabel, greetingFor } from '@/domain/datetime';
-import { findTool } from '@/domain/toolCatalog';
+import { DEFAULT_SHORTCUTS } from '@/domain/toolCatalog';
+import { useOpenTool } from '@/hooks/useOpenTool';
 import type { MainStackParamList } from '@/navigation/types';
 import { useAuthStore } from '@/stores/auth.store';
+import { useCardLayoutStore } from '@/stores/cardLayout.store';
+import { useWorkStore } from '@/stores/work.store';
 import { spacing } from '@/theme';
 import { GreetingHeader } from './GreetingHeader';
-import { OverviewCard } from './OverviewCard';
-import { WeekSummaryCard } from './WeekSummaryCard';
-import {
-  OVERVIEW_HINT,
-  OVERVIEW_STATS,
-  TODAY_SHORTCUTS,
-  WEATHER_LABEL,
-  WEEK_DELTA_HOURS,
-  WEEK_LOGS,
-  WEEK_TOTAL_HOURS,
-} from './today.data';
+
+const TODAY_SHORTCUTS = toShortcutItems(DEFAULT_SHORTCUTS);
 
 export function TodayScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const openTool = useOpenTool();
   const user = useAuthStore((state) => state.session?.user);
+  const hydrateCards = useCardLayoutStore((state) => state.hydrate);
+  const loadWork = useWorkStore((state) => state.load);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    void hydrateCards();
+    void loadWork();
+  }, [hydrateCards, loadWork]);
 
   const displayName =
     (user?.user_metadata?.display_name as string | undefined)?.trim() ||
@@ -36,29 +40,20 @@ export function TodayScreen() {
   const now = useMemo(() => new Date(), []);
   const greeting = greetingFor(now.getHours());
   const dateLabel = formatDateLabel(now);
-  const todayIndex = (now.getDay() + 6) % 7;
-
-  function openTool(id: string) {
-    const tool = findTool(id);
-    if (!tool) return;
-    navigation.navigate('ToolDetail', { toolId: tool.id });
-  }
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <GreetingHeader
-          greeting={greeting}
-          name={displayName}
-          dateLabel={dateLabel}
-          weather={WEATHER_LABEL}
-        />
+        <GreetingHeader greeting={greeting} name={displayName} dateLabel={dateLabel} />
 
-        <OverviewCard
-          stats={OVERVIEW_STATS}
-          hint={OVERVIEW_HINT}
-          onViewAll={() => navigation.navigate('Tabs', { screen: 'Tasks' })}
-        />
+        <View style={styles.section}>
+          <SectionHeader
+            title="我的卡片"
+            actionLabel={editing ? '完成' : '配置'}
+            onAction={() => setEditing((value) => !value)}
+          />
+          <CardBoard scope="today" editing={editing} onRequestEdit={() => setEditing(true)} />
+        </View>
 
         <View style={styles.section}>
           <SectionHeader
@@ -68,14 +63,6 @@ export function TodayScreen() {
           />
           <ShortcutGrid items={TODAY_SHORTCUTS} onSelect={openTool} />
         </View>
-
-        <WeekSummaryCard
-          logs={WEEK_LOGS}
-          totalHours={WEEK_TOTAL_HOURS}
-          deltaHours={WEEK_DELTA_HOURS}
-          todayIndex={todayIndex}
-          onOpenDetail={() => openTool('work-hours')}
-        />
       </ScrollView>
     </Screen>
   );
