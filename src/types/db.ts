@@ -1,9 +1,9 @@
-import type { Profile, WorkLog, WorkTask, WorkTaskStatus } from './domain';
+import type { Family, FamilyMember, Profile, WorkLog, WorkTask, WorkTaskStatus } from './domain';
 
-/** public.dw_profiles 的数据库行类型；snake_case 只允许出现在本文件。 */
+/** family-piggy 管理的 public.profiles 共享资料。 */
 export interface ProfileRow {
   id: string;
-  display_name: string;
+  nickname: string;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -12,10 +12,43 @@ export interface ProfileRow {
 export function toProfile(row: ProfileRow): Profile {
   return {
     id: row.id,
-    displayName: row.display_name,
+    displayName: row.nickname,
     avatarUrl: row.avatar_url,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+export interface FamilyRow {
+  id: string;
+  name: string;
+  owner_id: string;
+  created_at: string;
+}
+
+export interface FamilyMembershipRow {
+  families: FamilyRow | null;
+}
+
+export interface FamilyMemberRow {
+  family_id: string;
+  user_id: string;
+  role: string;
+}
+
+export type MemberProfileRow = Pick<ProfileRow, 'id' | 'nickname' | 'avatar_url'>;
+
+export function toFamily(row: FamilyRow): Family {
+  return { id: row.id, name: row.name, ownerId: row.owner_id, createdAt: row.created_at };
+}
+
+export function toFamilyMember(row: FamilyMemberRow, profile?: MemberProfileRow): FamilyMember {
+  return {
+    familyId: row.family_id,
+    userId: row.user_id,
+    role: row.role === 'owner' ? 'owner' : 'member',
+    displayName: profile?.nickname?.trim() || '成员',
+    avatarUrl: profile?.avatar_url ?? null,
   };
 }
 

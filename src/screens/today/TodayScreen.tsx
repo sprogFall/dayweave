@@ -13,6 +13,7 @@ import { useOpenTool } from '@/hooks/useOpenTool';
 import type { MainStackParamList } from '@/navigation/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCardLayoutStore } from '@/stores/cardLayout.store';
+import { useIdentityStore } from '@/stores/identity.store';
 import { useWorkStore } from '@/stores/work.store';
 import { spacing } from '@/theme';
 import { GreetingHeader } from './GreetingHeader';
@@ -23,6 +24,7 @@ export function TodayScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const openTool = useOpenTool();
   const user = useAuthStore((state) => state.session?.user);
+  const profile = useIdentityStore((state) => state.profile);
   const hydrateCards = useCardLayoutStore((state) => state.hydrate);
   const loadWork = useWorkStore((state) => state.load);
   const [editing, setEditing] = useState(false);
@@ -33,7 +35,7 @@ export function TodayScreen() {
   }, [hydrateCards, loadWork]);
 
   const displayName =
-    (user?.user_metadata?.display_name as string | undefined)?.trim() ||
+    profile?.displayName.trim() ||
     user?.email?.split('@')[0] ||
     '朋友';
 

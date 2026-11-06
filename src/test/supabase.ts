@@ -13,4 +13,5 @@ export const supabase = {
     signOut: jest.fn(),
   },
   from: jest.fn(),
+  rpc: jest.fn(),
 };

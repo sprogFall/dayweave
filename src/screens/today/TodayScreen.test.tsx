@@ -6,6 +6,15 @@ import { useCardLayoutStore } from '@/stores/cardLayout.store';
 import { TodayScreen } from './TodayScreen';
 
 const mockNavigate = jest.fn();
+const mockIdentity = { profile: null as { displayName: string } | null, load: jest.fn() };
+const mockAuth = { session: null as { user: { email: string; user_metadata: { display_name: string } } } | null };
+
+jest.mock('@/stores/identity.store', () => ({
+  useIdentityStore: (selector: (state: typeof mockIdentity) => unknown) => selector(mockIdentity),
+}), { virtual: true });
+jest.mock('@/stores/auth.store', () => ({
+  useAuthStore: Object.assign((selector: (state: typeof mockAuth) => unknown) => selector(mockAuth), { getState: () => mockAuth }),
+}));
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -29,7 +38,22 @@ jest.mock('@/services/workLog.service', () => ({
 describe('TodayScreen', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockIdentity.profile = null;
+    mockIdentity.load.mockClear();
+    mockAuth.session = null;
     useCardLayoutStore.getState().reset();
+  });
+
+  it('uses shared profile name, falls back to email and never reads auth metadata or loads identity', () => {
+    mockAuth.session = { user: { email: 'mailname@example.com', user_metadata: { display_name: '旧名字' } } };
+    mockIdentity.profile = { displayName: '共享名字' };
+    const { rerender } = render(<TodayScreen />);
+    expect(screen.getByText(/，共享名字$/)).toBeTruthy();
+    expect(screen.queryByText('旧名字')).toBeNull();
+    mockIdentity.profile = null;
+    rerender(<TodayScreen />);
+    expect(screen.getByText(/，mailname$/)).toBeTruthy();
+    expect(mockIdentity.load).not.toHaveBeenCalled();
   });
 
   it('renders the greeting and the default cards', () => {

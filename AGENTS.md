@@ -174,7 +174,8 @@ screens ──► stores ──► services ──► lib/supabase
 - 亮暗主题与基础组件；
 - 统一的应用内弹窗 / 确认框 / 日历 / 时间选择器组件与 Promise API（替代平台原生效果），开发态「组件预览」Tab；
 - 应用内更新：检查公开 GitHub Release、经代理下载 APK、校验大小并拉起系统安装器，入口在「我的」页；
-- `dw_profiles`、`dw_work_tasks`、`dw_work_logs` 三张表与 RLS。
+- `dw_work_tasks`、`dw_work_logs` 两张业务表与 RLS；用户资料、家庭和成员复用 family-piggy 的 `profiles`、`families`、`family_members`，是自建对象 `dw_` 前缀规则的明确例外；
+- `identity.store` 按账号缓存共享资料 / 家庭 / 成员 24 小时，启动、回前台、导航和每日检查时按需加载，「我的」提供强制刷新；不使用 Realtime。共享家庭只读与创建者改名（调用既有 `rename_family` RPC），不提供创建 / 加入 / 解散；头像支持共享 URL 和手动编辑公开图片链接。
 
 ### 工时体系约定
 

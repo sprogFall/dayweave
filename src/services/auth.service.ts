@@ -36,7 +36,7 @@ export async function signUp(displayName: string, email: string, password: strin
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
-    options: { data: { display_name: displayName.trim() } },
+    options: { data: { nickname: displayName.trim() } },
   });
   if (error) throw new Error(authErrorMessage(error.message));
   return Boolean(data.session);

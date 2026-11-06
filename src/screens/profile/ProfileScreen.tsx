@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { UpdateCard } from '@/components/UpdateCard';
 import { CardBoard } from '@/components/cards/CardBoard';
+import { SharedIdentityCard } from '@/components/profile/SharedIdentityCard';
 import { Card } from '@/components/ui/Card';
 import { IconTile } from '@/components/ui/IconTile';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -12,16 +12,13 @@ import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { confirmAction, showMessage } from '@/lib/alert';
 import { toUserMessage } from '@/lib/errors';
-import { getMyProfile } from '@/services/profile.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCardLayoutStore } from '@/stores/cardLayout.store';
 import { useWorkStore } from '@/stores/work.store';
 import {
-  radius,
   spacing,
   typography,
   useColors,
-  usePrimaryGradient,
   type IconName,
   type TintName,
 } from '@/theme';
@@ -42,13 +39,9 @@ const MENU_ENTRIES: readonly MenuEntry[] = [
 
 export function ProfileScreen() {
   const colors = useColors();
-  const avatarGradient = usePrimaryGradient();
-  const session = useAuthStore((state) => state.session);
   const signOut = useAuthStore((state) => state.signOut);
   const hydrateCards = useCardLayoutStore((state) => state.hydrate);
   const loadWork = useWorkStore((state) => state.load);
-  const [displayName, setDisplayName] = useState('');
-  const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -56,32 +49,6 @@ export function ProfileScreen() {
     void hydrateCards();
     void loadWork();
   }, [hydrateCards, loadWork]);
-
-  useEffect(() => {
-    let active = true;
-    const user = session?.user;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    getMyProfile(user.id)
-      .then((profile) => {
-        if (active) setDisplayName(profile.displayName);
-      })
-      .catch(() => {
-        if (active) {
-          setDisplayName((user.user_metadata?.display_name as string | undefined) ?? '');
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [session?.user]);
 
   function notifyPreview() {
     showMessage('还在路上', '这个页面会在后续版本开放。');
@@ -106,31 +73,17 @@ export function ProfileScreen() {
     }
   }
 
-  const user = session?.user;
-  const name =
-    displayName || (user?.user_metadata?.display_name as string | undefined) || '未设置昵称';
-  const email = user?.email ?? '未绑定邮箱';
-
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <Text style={[styles.title, { color: colors.text }]}>我的</Text>
 
-        <Card style={styles.profile}>
-          <LinearGradient colors={avatarGradient} style={styles.avatar}>
-            {loading ? (
-              <ActivityIndicator color={colors.onPrimary} />
-            ) : (
-              <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
-                {name.slice(0, 1).toUpperCase()}
-              </Text>
-            )}
-          </LinearGradient>
-          <View style={styles.profileCopy}>
-            <Text style={[styles.name, { color: colors.text }]}>{name}</Text>
-            <Text style={[styles.email, { color: colors.muted }]}>{email}</Text>
-          </View>
-        </Card>
+        <SharedIdentityCard />
 
         <View style={styles.section}>
           <SectionHeader
@@ -182,18 +135,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   title: { fontSize: typography.title, fontWeight: '800' },
-  profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: typography.subtitle + 3, fontWeight: '800' },
-  profileCopy: { flex: 1, gap: spacing.xs },
-  name: { fontSize: typography.subtitle, fontWeight: '700' },
-  email: { fontSize: typography.caption },
   section: { gap: spacing.lg },
   menu: { overflow: 'hidden' },
   menuDivider: { height: StyleSheet.hairlineWidth, marginLeft: spacing.xl + 30 },

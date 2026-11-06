@@ -1,20 +1,24 @@
--- Dayweave 基础数据库结构（幂等，可重复执行）
--- 所有对象统一使用 dw_ 前缀：同一个 Supabase 项目会被多个应用共用，无前缀的名字会互相冲突。
--- 当前仅包含账号资料，业务表请在后续功能中通过 migrations 增量添加。
--- 所有用户数据表都必须启用 RLS，并以 auth.uid() 作为权限边界。
+-- Dayweave 业务数据库结构（幂等，可重复执行）
+-- 共享 profiles / families / family_members 与 rename_family RPC 由 family-piggy 管理。
+-- 前置：先部署 family-piggy schema 及家庭管理迁移；本文件不复制或修改其表/权限。
+-- 升级旧库请先执行 20261107000000_use_shared_profiles_and_families.sql，安全迁移并移除 dw_profiles。
+-- 既有 family_members INSERT 仅检查本人 user_id，可能绕过邀请码加入任意家庭；
+-- 此安全问题需与 family-piggy 另行协调。本次只读家庭与 owner rename，不扩权限。
+
+do $$
+begin
+  if to_regclass('public.profiles') is null
+     or to_regclass('public.families') is null
+     or to_regclass('public.family_members') is null
+     or to_regprocedure('public.rename_family(uuid,text)') is null then
+    raise exception '请先部署 family-piggy 共享基础表及 rename_family RPC';
+  end if;
+end;
+$$;
 
 create extension if not exists pgcrypto;
 
-create table if not exists public.dw_profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  display_name text not null default '',
-  avatar_url text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-comment on table public.dw_profiles is '用户公开资料，一人一行，由 auth.users 自动创建';
-
+-- 业务表仍使用该更新时间触发函数，不随旧资料表删除。
 create or replace function public.dw_set_updated_at()
 returns trigger
 language plpgsql
@@ -24,55 +28,6 @@ begin
   return new;
 end;
 $$;
-
-drop trigger if exists dw_profiles_set_updated_at on public.dw_profiles;
-create trigger dw_profiles_set_updated_at
-before update on public.dw_profiles
-for each row execute function public.dw_set_updated_at();
-
--- 注册时自动建立资料。display_name 优先取注册表单传入的 metadata。
--- 触发器名同样带前缀：共用同一个库时，其他项目的 auth.users 触发器不会被误删。
-create or replace function public.dw_handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.dw_profiles (id, display_name)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'display_name', ''))
-  on conflict (id) do nothing;
-  return new;
-end;
-$$;
-
-drop trigger if exists dw_on_auth_user_created on auth.users;
-create trigger dw_on_auth_user_created
-after insert on auth.users
-for each row execute function public.dw_handle_new_user();
-
-alter table public.dw_profiles enable row level security;
-
-drop policy if exists "dw_profiles_select_own" on public.dw_profiles;
-create policy "dw_profiles_select_own"
-on public.dw_profiles for select
-to authenticated
-using (auth.uid() = id);
-
-drop policy if exists "dw_profiles_insert_own" on public.dw_profiles;
-create policy "dw_profiles_insert_own"
-on public.dw_profiles for insert
-to authenticated
-with check (auth.uid() = id);
-
-drop policy if exists "dw_profiles_update_own" on public.dw_profiles;
-create policy "dw_profiles_update_own"
-on public.dw_profiles for update
-to authenticated
-using (auth.uid() = id)
-with check (auth.uid() = id);
-
-grant select, insert, update on public.dw_profiles to authenticated;
 
 -- 工时任务：预计工时、时间范围与完成状态。
 create table if not exists public.dw_work_tasks (

@@ -6,14 +6,17 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SplashView } from '@/components/SplashView';
 import { DialogHost } from '@/components/ui/DialogHost';
+import { useIdentityLifecycle } from '@/hooks/useIdentityLifecycle';
 import { AuthNavigator, MainNavigator } from '@/navigation';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCardLayoutStore } from '@/stores/cardLayout.store';
 import { useWorkStore } from '@/stores/work.store';
+import { useIdentityStore } from '@/stores/identity.store';
 import { LIGHT_COLORS, DARK_COLORS } from '@/theme/palette';
 import { toColorScheme, useColors } from '@/theme';
 
 export default function App() {
+  useIdentityLifecycle();
   const status = useAuthStore((state) => state.status);
   const scheme = toColorScheme(useColorScheme());
   const colors = useColors();
@@ -47,7 +50,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <NavigationContainer theme={navigationTheme}>
+      <NavigationContainer theme={navigationTheme} onStateChange={() => { void useIdentityStore.getState().load(); }}>
         {status === 'loading' ? <SplashView /> : status === 'signedIn' ? <MainNavigator /> : <AuthNavigator />}
       </NavigationContainer>
       <DialogHost />

@@ -19,7 +19,7 @@
 Dayweave 是一个面向个人生活场景的助手工具。当前仓库处于**基础工程初始化阶段**，已经搭好后续功能开发所需的通用底座：
 
 - 邮箱注册 / 登录 / 退出，Supabase 会话持久化；
-- 注册时自动建立用户资料；
+- 与 family-piggy 共用用户昵称、头像、家庭与成员关系，支持编辑昵称 / 头像链接、家庭改名及手动刷新；
 - 登录态与未登录态路由切换；
 - 「今天 / 工具 / 待办 / 我的」四 Tab 应用外壳与页面大纲；
 - 工时：任务（预计工时、时间范围、完成状态）下挂分钟级工时记录，任务与记录都可删除；
@@ -29,7 +29,7 @@ Dayweave 是一个面向个人生活场景的助手工具。当前仓库处于**
 - Supabase 行级安全（RLS）初始化脚本；
 - Jest 离线测试、TypeScript 严格类型检查与 GitHub Actions CI。
 
-> 本仓库不包含任何记账、家庭账本或旧项目业务逻辑。后续功能应围绕 Dayweave 自身的生活助手定位独立设计。
+> Dayweave 只复用 family-piggy 的身份与家庭基础数据，不引入记账界面；工时等生活助手业务仍独立存储，家庭成员不会因此自动获得个人工时访问权。
 
 ## 页面大纲
 
@@ -96,7 +96,7 @@ npm install
 ### 2. 配置 Supabase
 
 1. 在 [supabase.com](https://supabase.com) 创建项目。
-2. 打开 Dashboard → SQL Editor，执行 [`supabase/schema.sql`](./supabase/schema.sql)。
+2. 先部署 family-piggy 的共享基础结构（`profiles`、`families`、`family_members`、`rename_family` 及其 RLS、注册触发器和头像存储桶）。再在 Dashboard → SQL Editor 执行 [`supabase/schema.sql`](./supabase/schema.sql)。已有 Dayweave 环境按下文执行共享资料迁移，不要重新部署旧版资料表。
 3. 在 Authentication → Providers 中启用 Email 登录，并按需选择是否开启邮箱验证。
 4. 复制环境变量模板：
 
@@ -143,17 +143,29 @@ npm run check
 
 ## 当前数据库
 
-`supabase/schema.sql` 当前创建三张表：
+[`supabase/schema.sql`](<supabase/schema.sql>) 创建两张 Dayweave 业务表：
 
-- `dw_profiles`：注册后自动创建用户资料，`updated_at` 自动维护；
 - `dw_work_tasks`：工时任务，含 `estimated_minutes`（分钟）、`start_date` / `due_date`、`status`（`open` / `done`）；
 - `dw_work_logs`：挂在任务下的工时记录，含 `content`、`minutes`、`work_date`；删除任务时由外键级联删除。
 
-三张表都启用 RLS，只允许用户读写自己的行（`auth.uid()`），并只授予 `authenticated` 需要的权限。
+两张表都启用 RLS，只允许用户读写自己的行（`auth.uid()`），并只授予 `authenticated` 需要的权限。
+
+### 共用用户与家庭
+
+- 用户资料统一使用 `profiles.nickname` / `avatar_url`，主键就是 Supabase Auth 用户 ID；不再读写 `dw_profiles`，注册 metadata 统一传 `nickname`。同账号可在两应用分别登录，不是自动跨应用登录。
+- 家庭与成员关系使用 `families`、`family_members`。Dayweave 展示家庭和成员，创建者可改家庭名；改名调用既有 `rename_family` RPC，同步家庭账本名。创建、加入、退出、解散仍在 family-piggy 完成，避免误伤关联记账数据。
+- 「我的」支持修改昵称、填写公开 HTTPS 头像链接（留空移除头像）和手动刷新共享资料；family-piggy 上传的头像 URL 也可直接展示，无需复制图片。
+- 完整资料 / 家庭 / 成员快照按账号缓存在 AsyncStorage，成功读取后 **24 小时**过期；启动、回到前台和每日检查时按需拉取，手动刷新绕过缓存。无 Realtime 订阅，也不会后台定时联网。刷新失败保留旧数据并展示错误，不延长缓存期限。
+- 保存昵称或家庭名会更新本地缓存，但不会延长其他共享数据的过期时间。登出和切换账号清空内存，未完成的旧请求不能覆盖新账号资料。
+- family-piggy 现有资料页在重新进入时刷新；修改共享数据后，其已打开页面不会立即变化，可重新进入页面查看。本文不承诺另一个客户端的一天缓存策略。
+
+**已有环境升级**：先备份，再在 SQL Editor 执行[共享资料迁移](<supabase/migrations/20261107000000_use_shared_profiles_and_families.sql>)。脚本要求共享结构已存在，为缺失历史用户补齐共享资料，以现有共享非空资料为准，只用旧资料补空值；完成后删除旧 `dw_profiles` 和其注册触发器，不保留双写。迁移不会创建个人账本，不改变已有家庭权限。应用发布不会自动执行数据库迁移。
+
+**权限提醒**：family-piggy 原有 `family_members_insert` 仅检查 `user_id = auth.uid()`，未强制邀请码验证；本次不增加创建 / 加入入口，也不擅自修改另一个项目的权限模型。正式扩大成员写入能力前，需在 family-piggy 侧统一改为受控创建 / 加入流程，并收紧此策略。
 
 ### 表名前缀约定
 
-同一个 Supabase 项目会被多个应用共用，因此本项目的数据库对象**统一使用 `dw_` 前缀**：表名（`dw_profiles`）、策略（`dw_profiles_select_own`）、触发器（`dw_on_auth_user_created`）、函数（`dw_set_updated_at`）都带前缀，避免和其他项目在同库内重名。命名细节见 [`AGENTS.md`](./AGENTS.md) 的 3.3 节。
+同一个 Supabase 项目会被多个应用共用，因此本项目**自建**数据库对象统一使用 `dw_` 前缀：例如 `dw_work_tasks`、`dw_work_tasks_select_own` 和 `dw_set_updated_at`。共享的 `profiles`、`families`、`family_members` 与家庭 RPC 由 family-piggy 管理，是明确的复用例外，不再额外建一套同义对象。命名细节见 [`AGENTS.md`](./AGENTS.md) 的 3.3 节。
 
 新增业务表时：
 

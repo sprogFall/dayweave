@@ -6,6 +6,21 @@ export interface Profile {
   updatedAt: string;
 }
 
+export interface Family {
+  id: string;
+  name: string;
+  ownerId: string;
+  createdAt: string;
+}
+
+export interface FamilyMember {
+  familyId: string;
+  userId: string;
+  role: 'owner' | 'member';
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export interface AuthUser {
   id: string;
   email: string | null;
