@@ -11,12 +11,11 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 describe('ToolPlaceholderScreen', () => {
-  it('keeps the tool shell without implementing the tool', () => {
+  it('shows a single status line without dev notes', () => {
     render(<ToolPlaceholderScreen />);
 
     expect(screen.getByText('功能开发中')).toBeTruthy();
-    expect(screen.getByText(/「工时记录」/)).toBeTruthy();
-    expect(screen.getByText('工具内容稍后填充')).toBeTruthy();
+    expect(screen.queryByText(/骨架|稍后填充|准备中/)).toBeNull();
   });
 
   it('goes back to the previous page', () => {
