@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { calendarDayKey, startOfDay } from '@/domain/calendar';
+import { formatDateLabel } from '@/domain/datetime';
 import { useAuthStore } from '@/stores/auth.store';
 import { useWorkStore } from '@/stores/work.store';
 import type { WorkLog, WorkTask } from '@/types/domain';
@@ -31,6 +32,7 @@ jest.mock('@/services/workTask.service', () => ({
 jest.mock('@/services/workLog.service', () => ({
   listWorkLogs: jest.fn(async () => []),
   createWorkLog: jest.fn(),
+  updateWorkLog: jest.fn(),
   deleteWorkLog: jest.fn(),
 }));
 
@@ -69,6 +71,7 @@ function log(overrides: Partial<WorkLog> = {}): WorkLog {
 const setTaskDone = jest.fn(async () => {});
 const removeTask = jest.fn(async () => {});
 const addLog = jest.fn(async () => {});
+const updateLog = jest.fn(async () => {});
 const removeLog = jest.fn(async () => {});
 
 function seed(tasks: readonly WorkTask[], logs: readonly WorkLog[]) {
@@ -80,6 +83,7 @@ function seed(tasks: readonly WorkTask[], logs: readonly WorkLog[]) {
     setTaskDone,
     removeTask,
     addLog,
+    updateLog,
     removeLog,
   });
 }
@@ -154,6 +158,36 @@ describe('WorkHoursScreen', () => {
 
     expect(await screen.findByText('请填写这次做了什么。')).toBeTruthy();
     expect(addLog).not.toHaveBeenCalled();
+  });
+
+  it('prefills and saves an edited work log', async () => {
+    render(<WorkHoursScreen />);
+
+    fireEvent.press(screen.getByLabelText('展开 重构工时模块'));
+    fireEvent.press(screen.getByLabelText(`编辑 ${formatDateLabel(today)} 的工时记录`));
+
+    expect(screen.getByDisplayValue('拆数据模型')).toBeTruthy();
+    fireEvent.changeText(screen.getByLabelText('花费时间 分钟'), '45');
+    fireEvent.press(screen.getByLabelText('保存修改'));
+
+    await waitFor(() =>
+      expect(updateLog).toHaveBeenCalledWith('log-1', {
+        taskId: 'task-1',
+        content: '拆数据模型',
+        minutes: 165,
+        date: todayKey,
+      }),
+    );
+    expect(addLog).not.toHaveBeenCalled();
+  });
+
+  it('opens the task form when editing a task', () => {
+    render(<WorkHoursScreen />);
+
+    fireEvent.press(screen.getByLabelText('展开 重构工时模块'));
+    fireEvent.press(screen.getByLabelText('编辑 重构工时模块'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('WorkTaskEdit', { taskId: 'task-1' });
   });
 
   it('marks a task done from the expanded actions', async () => {

@@ -5,10 +5,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DurationField } from '@/components/ui/DurationField';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { TextField } from '@/components/ui/TextField';
-import { calendarDayKey, startOfDay } from '@/domain/calendar';
+import { calendarDayKey, parseDayKey, startOfDay } from '@/domain/calendar';
 import { formatDateLabel } from '@/domain/datetime';
 import { pickDate } from '@/lib/picker';
 import { radius, spacing, typography, useColors } from '@/theme';
+import type { WorkLog } from '@/types/domain';
 
 export interface TaskLogDraft {
   content: string;
@@ -17,18 +18,22 @@ export interface TaskLogDraft {
 }
 
 interface TaskLogFormProps {
+  /** 传入已有记录即为编辑，初始值与按钮文案随之为编辑态。 */
+  initial?: WorkLog | null;
   saving: boolean;
   error: string | null;
   onSubmit: (draft: TaskLogDraft) => void;
   onCancel: () => void;
 }
 
-/** 内联在任务卡里的记工时表单，不占独立页面也不额外压一个弹窗。 */
-export function TaskLogForm({ saving, error, onSubmit, onCancel }: TaskLogFormProps) {
+/** 内联在任务卡里的记工时表单，新增与编辑共用，不占独立页面也不额外压一个弹窗。 */
+export function TaskLogForm({ initial, saving, error, onSubmit, onCancel }: TaskLogFormProps) {
   const colors = useColors();
-  const [content, setContent] = useState('');
-  const [minutes, setMinutes] = useState(0);
-  const [date, setDate] = useState(() => startOfDay(new Date()));
+  const [content, setContent] = useState(initial?.content ?? '');
+  const [minutes, setMinutes] = useState(initial?.minutes ?? 0);
+  const [date, setDate] = useState(
+    () => (initial ? (parseDayKey(initial.date) ?? startOfDay(new Date())) : startOfDay(new Date())),
+  );
   const [localError, setLocalError] = useState<string | null>(null);
 
   async function handlePickDate() {
@@ -66,7 +71,11 @@ export function TaskLogForm({ saving, error, onSubmit, onCancel }: TaskLogFormPr
         maxLength={120}
       />
 
-      <DurationField label="花费时间" initialMinutes={0} onChangeMinutes={setMinutes} />
+      <DurationField
+        label="花费时间"
+        initialMinutes={initial?.minutes ?? 0}
+        onChangeMinutes={setMinutes}
+      />
 
       <View style={styles.dateBlock}>
         <Text style={[styles.dateLabel, { color: colors.text }]}>归属日期</Text>
@@ -89,7 +98,7 @@ export function TaskLogForm({ saving, error, onSubmit, onCancel }: TaskLogFormPr
         </View>
         <View style={styles.action}>
           <PrimaryButton
-            label="保存工时"
+            label={initial ? '保存修改' : '保存工时'}
             onPress={handleSubmit}
             loading={saving}
             disabled={saving}

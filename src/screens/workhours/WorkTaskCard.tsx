@@ -58,6 +58,7 @@ interface WorkTaskCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onAddLog: (draft: TaskLogDraft) => Promise<void>;
+  onUpdateLog: (id: string, draft: TaskLogDraft) => Promise<void>;
   onRemoveLog: (log: WorkLog) => void;
 }
 
@@ -76,24 +77,34 @@ export function WorkTaskCard({
   onEdit,
   onDelete,
   onAddLog,
+  onUpdateLog,
   onRemoveLog,
 }: WorkTaskCardProps) {
   const colors = useColors();
   const [expanded, setExpanded] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [savingLog, setSavingLog] = useState(false);
   const [logError, setLogError] = useState<string | null>(null);
 
   const progress = taskProgress(logs, task.id, task.estimatedMinutes);
   const overdue = isOverdue(task, todayKey);
   const done = task.status === 'done';
+  const editingLog = editingLogId ? (logs.find((log) => log.id === editingLogId) ?? null) : null;
 
-  async function handleAddLog(draft: TaskLogDraft) {
+  function closeLogForm() {
+    setAdding(false);
+    setEditingLogId(null);
+    setLogError(null);
+  }
+
+  async function handleSubmitLog(draft: TaskLogDraft) {
     setSavingLog(true);
     setLogError(null);
     try {
-      await onAddLog(draft);
-      setAdding(false);
+      if (editingLog) await onUpdateLog(editingLog.id, draft);
+      else await onAddLog(draft);
+      closeLogForm();
     } catch (error) {
       setLogError(toUserMessage(error));
     } finally {
@@ -182,17 +193,26 @@ export function WorkTaskCard({
 
       {expanded ? (
         <View style={styles.detail}>
-          <TaskLogList logs={logs} removingId={removingLogId} onRemove={onRemoveLog} />
+          <TaskLogList
+            logs={logs}
+            removingId={removingLogId}
+            editingId={editingLogId}
+            onEdit={(log) => {
+              setAdding(false);
+              setEditingLogId(log.id);
+              setLogError(null);
+            }}
+            onRemove={onRemoveLog}
+          />
 
-          {adding ? (
+          {adding || editingLog ? (
             <TaskLogForm
+              key={editingLog?.id ?? 'new'}
+              initial={editingLog}
               saving={savingLog}
               error={logError}
-              onSubmit={(draft) => void handleAddLog(draft)}
-              onCancel={() => {
-                setAdding(false);
-                setLogError(null);
-              }}
+              onSubmit={(draft) => void handleSubmitLog(draft)}
+              onCancel={closeLogForm}
             />
           ) : (
             <View style={styles.actions}>

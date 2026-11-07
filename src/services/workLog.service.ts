@@ -44,6 +44,28 @@ export async function createWorkLog(userId: string, input: WorkLogInput): Promis
   return toWorkLog(data);
 }
 
+/** 只允许改内容、时长与归属日期；记录必须继续挂在原任务下。 */
+export async function updateWorkLog(
+  userId: string,
+  id: string,
+  input: WorkLogInput,
+): Promise<WorkLog> {
+  const { data, error } = await supabase
+    .from('dw_work_logs')
+    .update({
+      content: input.content.trim(),
+      minutes: input.minutes,
+      work_date: input.date,
+    })
+    .eq('user_id', userId)
+    .eq('id', id)
+    .select(COLUMNS)
+    .single<WorkLogRow>();
+
+  if (error) throw new Error('保存工时记录失败，请稍后重试。');
+  return toWorkLog(data);
+}
+
 export async function deleteWorkLog(userId: string, id: string): Promise<void> {
   const { error } = await supabase
     .from('dw_work_logs')

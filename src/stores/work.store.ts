@@ -7,6 +7,7 @@ import {
   createWorkLog,
   deleteWorkLog,
   listWorkLogs,
+  updateWorkLog,
   type WorkLogInput,
 } from '@/services/workLog.service';
 import {
@@ -42,6 +43,7 @@ export interface WorkState {
   setTaskDone: (id: string, done: boolean) => Promise<void>;
   removeTask: (id: string) => Promise<void>;
   addLog: (input: WorkLogInput) => Promise<void>;
+  updateLog: (id: string, input: WorkLogInput) => Promise<void>;
   removeLog: (id: string) => Promise<void>;
   reset: () => void;
 }
@@ -137,6 +139,16 @@ export const useWorkStore = create<WorkState>((set, get) => ({
 
     const created = await createWorkLog(userId, input);
     set({ status: 'ready', error: null, logs: sortLogs([created, ...get().logs]) });
+  },
+
+  updateLog: async (id, input) => {
+    const userId = currentUserId();
+    if (!userId) throw new Error('登录状态已失效，请重新登录。');
+    if (input.minutes <= 0) throw new Error('花费时间必须大于 0。');
+
+    const updated = await updateWorkLog(userId, id, input);
+    // 归属日期可改，改完重排，列表仍保持按日期倒序。
+    set({ logs: sortLogs(get().logs.map((log) => (log.id === id ? updated : log))) });
   },
 
   removeLog: async (id) => {

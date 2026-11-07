@@ -1,6 +1,11 @@
 import type { Session } from '@supabase/supabase-js';
 
-import { createWorkLog, deleteWorkLog, listWorkLogs } from '@/services/workLog.service';
+import {
+  createWorkLog,
+  deleteWorkLog,
+  listWorkLogs,
+  updateWorkLog,
+} from '@/services/workLog.service';
 import {
   createWorkTask,
   deleteWorkTask,
@@ -24,6 +29,7 @@ jest.mock('@/services/workLog.service', () => ({
   createWorkLog: jest.fn(),
   deleteWorkLog: jest.fn(),
   listWorkLogs: jest.fn(),
+  updateWorkLog: jest.fn(),
 }));
 
 const listTasksMock = listWorkTasks as jest.MockedFunction<typeof listWorkTasks>;
@@ -32,6 +38,7 @@ const deleteTaskMock = deleteWorkTask as jest.MockedFunction<typeof deleteWorkTa
 const setDoneMock = setWorkTaskDone as jest.MockedFunction<typeof setWorkTaskDone>;
 const listLogsMock = listWorkLogs as jest.MockedFunction<typeof listWorkLogs>;
 const createLogMock = createWorkLog as jest.MockedFunction<typeof createWorkLog>;
+const updateLogMock = updateWorkLog as jest.MockedFunction<typeof updateWorkLog>;
 const deleteLogMock = deleteWorkLog as jest.MockedFunction<typeof deleteWorkLog>;
 
 function task(overrides: Partial<WorkTask> = {}): WorkTask {
@@ -214,6 +221,45 @@ describe('work store', () => {
     ).rejects.toThrow('花费时间必须大于 0。');
 
     expect(createLogMock).not.toHaveBeenCalled();
+  });
+
+  it('replaces an edited log in place and keeps date order', async () => {
+    listLogsMock.mockResolvedValue([
+      log({ id: 'log-1', date: '2026-11-06' }),
+      log({ id: 'log-2', date: '2026-11-04' }),
+    ]);
+    listTasksMock.mockResolvedValue([task()]);
+    await useWorkStore.getState().load();
+
+    updateLogMock.mockResolvedValue(
+      log({ id: 'log-1', content: '改内容', minutes: 60, date: '2026-11-03' }),
+    );
+
+    await useWorkStore.getState().updateLog('log-1', {
+      taskId: 'task-1',
+      content: '改内容',
+      minutes: 60,
+      date: '2026-11-03',
+    });
+
+    expect(updateLogMock).toHaveBeenCalledWith('user-1', 'log-1', {
+      taskId: 'task-1',
+      content: '改内容',
+      minutes: 60,
+      date: '2026-11-03',
+    });
+    expect(useWorkStore.getState().logs.map((item) => item.id)).toEqual(['log-2', 'log-1']);
+    expect(useWorkStore.getState().logs[1].minutes).toBe(60);
+  });
+
+  it('rejects editing a log to a non-positive duration', async () => {
+    await expect(
+      useWorkStore
+        .getState()
+        .updateLog('log-1', { taskId: 'task-1', content: '', minutes: 0, date: '2026-11-06' }),
+    ).rejects.toThrow('花费时间必须大于 0。');
+
+    expect(updateLogMock).not.toHaveBeenCalled();
   });
 
   it('removes a deleted log', async () => {

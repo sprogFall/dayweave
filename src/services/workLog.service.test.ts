@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { queryBuilder } from '@/test/postgrest';
 
-import { createWorkLog, deleteWorkLog, listWorkLogs } from './workLog.service';
+import { createWorkLog, deleteWorkLog, listWorkLogs, updateWorkLog } from './workLog.service';
 
 const logRow = {
   id: 'log-1',
@@ -81,6 +81,41 @@ describe('workLog.service', () => {
 
     await expect(
       createWorkLog('user-1', { taskId: 'task-1', content: '', minutes: 30, date: '2026-11-06' }),
+    ).rejects.toThrow('保存工时记录失败');
+  });
+
+  it('updates an existing log scoped to the current user', async () => {
+    const builder = queryBuilder({ data: { ...logRow, content: '改内容', minutes: '90' }, error: null });
+    fromMock.mockReturnValue(builder);
+
+    const saved = await updateWorkLog('user-1', 'log-1', {
+      taskId: 'task-1',
+      content: '  改内容  ',
+      minutes: 90,
+      date: '2026-11-05',
+    });
+
+    expect(builder.update).toHaveBeenCalledWith({
+      content: '改内容',
+      minutes: 90,
+      work_date: '2026-11-05',
+    });
+    expect(builder.eq).toHaveBeenCalledWith('user_id', 'user-1');
+    expect(builder.eq).toHaveBeenCalledWith('id', 'log-1');
+    expect(saved.content).toBe('改内容');
+    expect(saved.minutes).toBe(90);
+  });
+
+  it('surfaces a readable error when updating fails', async () => {
+    fromMock.mockReturnValue(queryBuilder({ data: null, error: { message: 'boom' } }));
+
+    await expect(
+      updateWorkLog('user-1', 'log-1', {
+        taskId: 'task-1',
+        content: '改内容',
+        minutes: 90,
+        date: '2026-11-05',
+      }),
     ).rejects.toThrow('保存工时记录失败');
   });
 

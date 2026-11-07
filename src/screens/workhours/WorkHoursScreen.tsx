@@ -33,6 +33,7 @@ export function WorkHoursScreen() {
   const setTaskDone = useWorkStore((state) => state.setTaskDone);
   const removeTask = useWorkStore((state) => state.removeTask);
   const addLog = useWorkStore((state) => state.addLog);
+  const updateLog = useWorkStore((state) => state.updateLog);
   const removeLog = useWorkStore((state) => state.removeLog);
 
   const [removingLogId, setRemovingLogId] = useState<string | null>(null);
@@ -110,6 +111,9 @@ export function WorkHoursScreen() {
         onEdit={() => navigation.navigate('WorkTaskEdit', { taskId: task.id })}
         onDelete={() => void handleRemoveTask(task)}
         onAddLog={(draft: TaskLogDraft) => addLog({ ...draft, taskId: task.id })}
+        onUpdateLog={(id: string, draft: TaskLogDraft) =>
+          updateLog(id, { ...draft, taskId: task.id })
+        }
         onRemoveLog={(log) => void handleRemoveLog(log)}
       />
     );
